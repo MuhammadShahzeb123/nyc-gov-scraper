@@ -4,7 +4,7 @@
 
 ### 💾 **1. Immediate Data Saving**
 - **Problem Solved**: No more data loss if scraper stops unexpectedly
-- **Implementation**: 
+- **Implementation**:
   - Results saved immediately after each violation number is processed
   - Individual files: `results/violation_{number}_{timestamp}.json`
   - Master file: `results/all_tickets_live.json` (updated in real-time)

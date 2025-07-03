@@ -468,14 +468,14 @@ class NYCParkingTicketScraper:
             if search_filters and len(search_filters) > 0:
                 element = search_filters[0]
 
-                # Check if element is visible and clickable
-                if element.is_displayed() and element.is_enabled():
+                # Check if element is visible or clickable
+                if element.is_displayed() or element.is_enabled():
                     # Move mouse to the element naturally
                     self.actions.move_to_element(element).perform()
                     self.random_delay(0.3, 0.8)
 
                     # Sometimes just hover, sometimes click
-                    if random.choice([True, False]):
+                    if random.choice([True, True]):
                         element.click()
                         print("✓ Clicked search filters")
                         self.random_delay(0.5, 1.2)
@@ -652,14 +652,14 @@ class NYCParkingTicketScraper:
                 if should_take_break and index > 1:
                     print("🏖️ Time for a strategic break!")
                     self.take_random_break()
-                    
+
                     # Return to base URL after break
                     if not self.return_to_base_url():
                         print("⚠️ Failed to return to base URL after break, retrying...")
                         if not self.navigate_to_site():
                             print("❌ Critical: Cannot navigate to site after break")
                             break
-                    
+
                     last_break_at = index
                     break_frequency = random.randint(8, 15)  # Reset break frequency
 
@@ -668,18 +668,18 @@ class NYCParkingTicketScraper:
                     delay_time = random.uniform(DELAYS['between_requests_min'], DELAYS['between_requests_max'])
                     print(f"Waiting {delay_time:.1f} seconds before next search...")
                     time.sleep(delay_time)
-                
+
                 # Random human behavior before search
                 if random.random() < DELAYS['random_behavior_probability']:
                     print("Performing random human behavior...")
                     self.simulate_human_behavior()
-                
+
                 if self.search_violation_number(violation_number):
                     tickets = self.extract_ticket_data(violation_number)
-                    
+
                     # IMMEDIATE SAVING - Save results as soon as they're scraped
                     self.save_results_immediately(tickets, violation_number)
-                    
+
                     # Also add to main data structure
                     self.scraped_data.extend(tickets)
                     processed_count += len(tickets)
@@ -694,7 +694,7 @@ class NYCParkingTicketScraper:
                     longer_delay = random.uniform(DELAYS['longer_break_duration_min'], DELAYS['longer_break_duration_max'])
                     print(f"Taking a longer pause: {longer_delay:.1f} seconds...")
                     time.sleep(longer_delay)
-                    
+
                     # Sometimes simulate tab switching or other activity
                     if random.random() < 0.5:
                         self.simulate_human_behavior()
@@ -713,7 +713,7 @@ class NYCParkingTicketScraper:
         print(f"   • Processed: {index}/{total_numbers} violation numbers")
         print(f"   • Total tickets found: {processed_count}")
         print(f"   • Success rate: {(processed_count/total_numbers*100):.1f}%" if total_numbers > 0 else "   • No data to process")
-        
+
         # Create final backup
         if self.scraped_data:
             final_filename = f"final_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
