@@ -1,0 +1,122 @@
+[
+  {
+    "url": "https://www.reddit.com",
+    "timestamp": "2025-06-28T12:22:32.870935",
+    "session_id": "historical_7days_ago"
+  },
+  {
+    "url": "https://www.wikipedia.org",
+    "timestamp": "2025-06-28T10:59:32.871000",
+    "session_id": "historical_7days_ago"
+  },
+  {
+    "url": "https://www.weather.com",
+    "timestamp": "2025-06-29T05:39:32.871041",
+    "session_id": "historical_6days_ago"
+  },
+  {
+    "url": "https://www.bbc.com",
+    "timestamp": "2025-06-29T15:35:32.871075",
+    "session_id": "historical_6days_ago"
+  },
+  {
+    "url": "https://www.reddit.com",
+    "timestamp": "2025-06-29T10:25:32.871093",
+    "session_id": "historical_6days_ago"
+  },
+  {
+    "url": "https://www.wikipedia.org",
+    "timestamp": "2025-06-30T09:05:32.871147",
+    "session_id": "historical_5days_ago"
+  },
+  {
+    "url": "https://www.amazon.com",
+    "timestamp": "2025-06-30T10:27:32.871165",
+    "session_id": "historical_5days_ago"
+  },
+  {
+    "url": "https://www.reddit.com",
+    "timestamp": "2025-06-30T10:46:32.871180",
+    "session_id": "historical_5days_ago"
+  },
+  {
+    "url": "https://www.cnn.com",
+    "timestamp": "2025-07-01T04:01:32.871209",
+    "session_id": "historical_4days_ago"
+  },
+  {
+    "url": "https://www.news.google.com",
+    "timestamp": "2025-07-01T05:59:32.871226",
+    "session_id": "historical_4days_ago"
+  },
+  {
+    "url": "https://www.google.com",
+    "timestamp": "2025-07-01T10:22:32.871264",
+    "session_id": "historical_4days_ago"
+  },
+  {
+    "url": "https://www.nytimes.com",
+    "timestamp": "2025-07-01T06:52:32.871282",
+    "session_id": "historical_4days_ago"
+  },
+  {
+    "url": "https://www.wikipedia.org",
+    "timestamp": "2025-07-02T04:38:32.871303",
+    "session_id": "historical_3days_ago"
+  },
+  {
+    "url": "https://www.youtube.com",
+    "timestamp": "2025-07-02T08:56:32.871311",
+    "session_id": "historical_3days_ago"
+  },
+  {
+    "url": "https://www.nytimes.com",
+    "timestamp": "2025-07-03T05:06:32.871333",
+    "session_id": "historical_2days_ago"
+  },
+  {
+    "url": "https://www.reddit.com",
+    "timestamp": "2025-07-03T11:40:32.871348",
+    "session_id": "historical_2days_ago"
+  },
+  {
+    "url": "https://www.bbc.com",
+    "timestamp": "2025-07-03T10:05:32.871360",
+    "session_id": "historical_2days_ago"
+  },
+  {
+    "url": "https://www.google.com",
+    "timestamp": "2025-07-04T09:04:32.871380",
+    "session_id": "historical_1days_ago"
+  },
+  {
+    "url": "https://www.weather.com",
+    "timestamp": "2025-07-04T13:16:32.871391",
+    "session_id": "historical_1days_ago"
+  },
+  {
+    "url": "https://www.news.google.com",
+    "timestamp": "2025-07-04T16:16:32.871403",
+    "session_id": "historical_1days_ago"
+  },
+  {
+    "url": "https://www.wikipedia.org",
+    "timestamp": "2025-07-04T14:00:32.871416",
+    "session_id": "historical_1days_ago"
+  },
+  {
+    "url": "https://www.google.com/search?q=weather+today",
+    "timestamp": "2025-07-04T18:46:04.181963",
+    "session_id": "session_1751636713"
+  },
+  {
+    "url": "https://www.espn.com",
+    "timestamp": "2025-07-04T18:46:54.550413",
+    "session_id": "session_1751636713"
+  },
+  {
+    "url": "https://www.weather.com",
+    "timestamp": "2025-07-04T19:00:31.685081",
+    "session_id": "session_1751637509"
+  }
+]

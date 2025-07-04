@@ -4,7 +4,7 @@ Test script to verify the scraper works with a single violation number
 
 import sys
 import os
-from main import NYCParkingTicketScraper
+from citypay_nyc import NYCParkingTicketScraper
 
 def test_single_violation():
     """Test the scraper with just one violation number"""
