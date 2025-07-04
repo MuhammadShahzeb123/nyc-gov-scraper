@@ -1,0 +1,44 @@
+[
+  {
+    "search_violation_number": "9183673350",
+    "extracted_at": "2025-07-04T14:40:38.437295",
+    "ticket_id": "9183673350",
+    "violation_number": "",
+    "license_plate": "",
+    "violation_type": "",
+    "date": "",
+    "liability_amount": "",
+    "paid_amount": "",
+    "amount_due": "",
+    "payment_amount": "0.00",
+    "view_ticket_link": ""
+  },
+  {
+    "search_violation_number": "9183966020",
+    "extracted_at": "2025-07-04T14:41:22.503007",
+    "ticket_id": "9183966020",
+    "violation_number": "",
+    "license_plate": "",
+    "violation_type": "",
+    "date": "",
+    "liability_amount": "",
+    "paid_amount": "",
+    "amount_due": "",
+    "payment_amount": "0.00",
+    "view_ticket_link": ""
+  },
+  {
+    "search_violation_number": "9187197340",
+    "extracted_at": "2025-07-04T14:42:48.283792",
+    "ticket_id": "2025602263113",
+    "violation_number": "9187197340",
+    "license_plate": "164439V NJ PAS",
+    "violation_type": "14-No Standing",
+    "date": "05/29/2025",
+    "liability_amount": "$115.00",
+    "paid_amount": "$0.00",
+    "amount_due": "$115.00",
+    "payment_amount": "115.00",
+    "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VDFSRk5FNTZSVFZPZWswd1RVRTlQUT09"
+  }
+]

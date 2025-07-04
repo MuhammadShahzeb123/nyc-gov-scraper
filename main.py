@@ -152,27 +152,73 @@ class NYCParkingTicketScraper:
             element.send_keys(text[-1])
 
     def create_browser_history(self):
-        """Create some browser history to look more human"""
+        """Create some browser history to look more human with enhanced randomness"""
         if not BROWSER_HISTORY['enabled']:
             return
 
         try:
             print("Creating browser history...")
-            selected_sites = random.sample(BROWSER_HISTORY['sites'], BROWSER_HISTORY['visit_count'])
+
+            # Enhanced sites list with more variety
+            all_history_sites = [
+                "https://www.google.com",
+                "https://www.wikipedia.org",
+                "https://www.news.google.com",
+                "https://www.weather.com",
+                "https://www.cnn.com",
+                "https://www.reddit.com",
+                "https://www.bbc.com",
+                "https://www.nytimes.com",
+                "https://www.espn.com",
+                "https://www.forbes.com",
+                "https://www.bloomberg.com",
+                "https://stackoverflow.com",
+                "https://www.github.com"
+            ]
+
+            # Random number of sites to visit (1-3 for initial history)
+            visit_count = random.randint(1, 3)
+            selected_sites = random.sample(all_history_sites, min(visit_count, len(all_history_sites)))
 
             for site in selected_sites:
-                self.driver.execute_script(f"window.open('{site}', '_blank');")
-                time.sleep(random.uniform(1, 2))
+                try:
+                    print(f"  📖 Adding to history: {site}")
+                    self.driver.execute_script(f"window.open('{site}', '_blank');")
+                    time.sleep(random.uniform(1, 2))
 
-                # Switch to the new tab and close it
-                self.driver.switch_to.window(self.driver.window_handles[-1])
-                visit_duration = random.uniform(BROWSER_HISTORY['visit_duration_min'], BROWSER_HISTORY['visit_duration_max'])
-                time.sleep(visit_duration)
-                self.driver.close()
+                    # Switch to the new tab and interact briefly
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
 
-                # Switch back to main tab
-                self.driver.switch_to.window(self.driver.window_handles[0])
-                time.sleep(random.uniform(0.5, 1.0))
+                    # Brief interaction
+                    visit_duration = random.uniform(1, 4)  # Shorter for initial history
+
+                    # Sometimes scroll or click
+                    if random.random() < 0.5:
+                        scroll_amount = random.randint(100, 300)
+                        self.driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                        time.sleep(0.5)
+
+                    if random.random() < 0.3:  # 30% chance to click
+                        try:
+                            body = self.driver.find_element(By.TAG_NAME, "body")
+                            self.actions.move_to_element(body).click().perform()
+                        except:
+                            pass
+
+                    time.sleep(visit_duration)
+                    self.driver.close()
+
+                    # Switch back to main tab
+                    self.driver.switch_to.window(self.driver.window_handles[0])
+                    time.sleep(random.uniform(0.3, 0.8))
+
+                except Exception as e:
+                    print(f"  ⚠️ Issue with history site {site}: {type(e).__name__}")
+                    try:
+                        self.driver.close()
+                        self.driver.switch_to.window(self.driver.window_handles[0])
+                    except:
+                        pass
 
             print("✓ Browser history created successfully")
 
@@ -223,8 +269,79 @@ class NYCParkingTicketScraper:
             print("Timeout waiting for page to load")
             return False
 
-    def search_violation_number(self, violation_number):
-        """Search for a specific violation number with human-like behavior"""
+    def detect_captcha_error(self):
+        """Detect if a captcha error is present on the page"""
+        try:
+            # Get the full page source
+            page_source = self.driver.page_source.lower()
+            
+            # Various captcha error patterns to check for
+            captcha_patterns = [
+                "unable to verify recaptcha with google",
+                "unable to verify recaptcha",
+                "recaptcha verification failed",
+                "captcha verification failed",
+                "captcha error",
+                "recaptcha error",
+                "please verify you are human",
+                "verify you are not a robot",
+                "security verification required",
+                "anti-bot verification",
+                "please complete the captcha",
+                "captcha challenge",
+                "human verification required"
+            ]
+            
+            # Check for any of these patterns
+            for pattern in captcha_patterns:
+                if pattern in page_source:
+                    print(f"🤖 CAPTCHA DETECTED: Found pattern '{pattern}'")
+                    return True
+            
+            # Also check for common reCAPTCHA elements
+            captcha_elements = [
+                "//div[@class*='recaptcha']",
+                "//iframe[@title*='recaptcha']",
+                "//div[@id*='captcha']",
+                "//div[@class*='captcha']",
+                "//*[contains(@class, 'g-recaptcha')]",
+                "//*[contains(text(), 'I am not a robot')]"
+            ]
+            
+            for xpath in captcha_elements:
+                try:
+                    elements = self.driver.find_elements(By.XPATH, xpath)
+                    if elements and any(elem.is_displayed() for elem in elements):
+                        print(f"🤖 CAPTCHA DETECTED: Found visible element with xpath '{xpath}'")
+                        return True
+                except:
+                    continue
+            
+            return False
+            
+        except Exception as e:
+            print(f"⚠️ Error checking for captcha: {type(e).__name__}")
+            return False
+
+    def handle_captcha_retry(self, violation_number):
+        """Handle captcha detection by wandering and retrying once"""
+        print(f"🤖 Captcha detected for violation {violation_number} - initiating evasion sequence...")
+        
+        # Take a random break to avoid captcha
+        self.take_random_break()
+        
+        # Return to base URL
+        self.return_to_base_url()
+        
+        # Wait a bit more
+        self.random_delay(3, 8)
+        
+        # Try the search one more time
+        print(f"🔄 Retrying search for violation {violation_number} after captcha evasion...")
+        return self.search_violation_number_internal(violation_number, is_retry=True)
+
+    def search_violation_number_internal(self, violation_number, is_retry=False):
+        """Internal search method that can handle retries"""
         try:
             # Simulate human behavior before interacting
             self.simulate_human_behavior()
@@ -232,6 +349,10 @@ class NYCParkingTicketScraper:
 
             # Find and interact with input field in a human-like way
             input_field = self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="violation-number"]')))
+
+            # Clear the field first
+            input_field.clear()
+            self.random_delay(0.2, 0.5)
 
             # Move mouse to input field and click
             self.actions.move_to_element(input_field).click().perform()
@@ -250,12 +371,21 @@ class NYCParkingTicketScraper:
             self.random_delay(0.2, 0.5)
             search_button.click()
 
-            print(f"Searching for violation number: {violation_number}")
+            print(f"Searching for violation number: {violation_number}" + (" (retry)" if is_retry else ""))
 
             # Wait for network to be idle and page to load results
             self.wait_for_results()
 
-            # Try to interact with search filters stealthily after search
+            # Check for captcha after search results load
+            if self.detect_captcha_error():
+                if is_retry:
+                    print(f"🤖 Captcha detected again on retry for {violation_number} - skipping this violation")
+                    return False
+                else:
+                    # Handle captcha with wandering and retry
+                    return self.handle_captcha_retry(violation_number)
+
+            # Try to interact with search filters stealthily after successful search
             self.try_click_search_filters_stealthily()
 
             return True
@@ -263,6 +393,10 @@ class NYCParkingTicketScraper:
         except (TimeoutException, NoSuchElementException) as e:
             print(f"Error searching for {violation_number}: {str(e)}")
             return False
+
+    def search_violation_number(self, violation_number):
+        """Search for a specific violation number with human-like behavior and captcha handling"""
+        return self.search_violation_number_internal(violation_number, is_retry=False)
 
     def wait_for_results(self):
         """Wait for search results to load completely"""
@@ -450,55 +584,102 @@ class NYCParkingTicketScraper:
             print(f"Warning: Could not save results immediately: {e}")
 
     def try_click_search_filters_stealthily(self):
-        """Try to click search filters in a stealthy way, ignore if not found"""
+        """Try to click search filters in a stealthy way - CRUCIAL for progression"""
         try:
-            # Random chance to even attempt this (70% chance)
-            if random.random() > 0.7:
-                return
-
-            print("🔍 Attempting to interact with search filters...")
+            # Always attempt this since it's crucial for progression
+            print("🔍 Attempting to interact with search filters (CRUCIAL STEP)...")
 
             # Simulate looking around the page first
             self.simulate_human_behavior()
             self.random_delay(0.5, 1.5)
 
-            # Try to find the search filters element
-            search_filters = self.driver.find_elements(By.XPATH, '//*[@id="search-filters"]')
+            # Multiple XPath options to try (in order of preference)
+            search_filter_xpaths = [
+                '//*[@id="search-filters"]/p/a',  # Most specific path - the crucial one
+                '//*[@id="search-filters"]//a',   # Any link within search-filters
+                '//*[@id="search-filters"]/p',    # The paragraph container
+                '//*[@id="search-filters"]',      # The main container
+                '//a[contains(@href, "search")]', # Any search-related link
+                '//a[contains(text(), "filter")]', # Any filter-related link
+                '//a[contains(text(), "Filter")]'  # Capitalized filter
+            ]
 
-            if search_filters and len(search_filters) > 0:
-                element = search_filters[0]
+            element_found = False
 
-                # Check if element is visible or clickable
-                if element.is_displayed() or element.is_enabled():
-                    # Move mouse to the element naturally
-                    self.actions.move_to_element(element).perform()
-                    self.random_delay(0.3, 0.8)
+            for xpath in search_filter_xpaths:
+                try:
+                    search_filters = self.driver.find_elements(By.XPATH, xpath)
 
-                    # Sometimes just hover, sometimes click
-                    if random.choice([True, True]):
-                        element.click()
-                        print("✓ Clicked search filters")
-                        self.random_delay(0.5, 1.2)
-                    else:
-                        print("✓ Hovered over search filters")
+                    if search_filters and len(search_filters) > 0:
+                        element = search_filters[0]
 
-                    # Random additional behavior after interaction
-                    if random.random() < 0.3:
-                        self.simulate_human_behavior()
+                        print(f"🎯 Found search filter element using: {xpath}")
 
-            else:
-                print("🔍 Search filters not found - continuing normally")
+                        # Check if element is visible and clickable
+                        if element.is_displayed() and element.is_enabled():
+                            # Move mouse to the element naturally
+                            self.actions.move_to_element(element).perform()
+                            self.random_delay(0.3, 0.8)
+
+                            # ALWAYS click since this is crucial
+                            try:
+                                element.click()
+                                print("✅ SUCCESS: Clicked search filters - can now progress!")
+                                self.random_delay(0.5, 1.2)
+                                element_found = True
+                                break
+                            except Exception as click_error:
+                                print(f"⚠️ Click failed, trying JavaScript click...")
+                                try:
+                                    self.driver.execute_script("arguments[0].click();", element)
+                                    print("✅ SUCCESS: JavaScript clicked search filters!")
+                                    element_found = True
+                                    break
+                                except:
+                                    print(f"⚠️ JavaScript click also failed for {xpath}")
+                                    continue
+                        else:
+                            print(f"🔍 Element found but not clickable: {xpath}")
+
+                except Exception as e:
+                    print(f"🔍 XPath {xpath} not found: {type(e).__name__}")
+                    continue
+
+            if not element_found:
+                print("⚠️ WARNING: No search filter elements found - this may block progression!")
+                # Try to scroll down and look again
+                print("🔄 Scrolling down to look for hidden elements...")
+                self.driver.execute_script("window.scrollBy(0, 300);")
+                self.random_delay(1, 2)
+
+                # Try one more time after scrolling
+                for xpath in search_filter_xpaths[:3]:  # Try top 3 again
+                    try:
+                        search_filters = self.driver.find_elements(By.XPATH, xpath)
+                        if search_filters and len(search_filters) > 0:
+                            element = search_filters[0]
+                            if element.is_displayed():
+                                self.actions.move_to_element(element).click().perform()
+                                print("✅ SUCCESS: Found and clicked after scrolling!")
+                                element_found = True
+                                break
+                    except:
+                        continue
+
+            # Random additional behavior after interaction
+            if element_found and random.random() < 0.4:
+                self.simulate_human_behavior()
 
         except Exception as e:
-            print(f"🔍 Search filters interaction completed (no issues): {type(e).__name__}")
-            # Intentionally not logging the full error to keep it stealthy
+            print(f"🔍 Search filters interaction error: {type(e).__name__}")
+            # Don't let this stop the scraper
 
     def take_random_break(self):
-        """Take a random break by visiting other websites"""
+        """Take a random break by visiting other websites with enhanced randomness"""
         try:
             print("🏖️ Taking a random break - wandering to other sites...")
 
-            # Sites to visit during break
+            # Enhanced sites list with more variety
             break_sites = [
                 "https://www.google.com",
                 "https://www.weather.com",
@@ -509,12 +690,20 @@ class NYCParkingTicketScraper:
                 "https://www.bbc.com",
                 "https://stackoverflow.com",
                 "https://www.youtube.com",
-                "https://www.amazon.com"
+                "https://www.amazon.com",
+                "https://www.nytimes.com",
+                "https://www.espn.com",
+                "https://www.twitter.com",
+                "https://www.facebook.com",
+                "https://www.instagram.com",
+                "https://www.linkedin.com",
+                "https://www.forbes.com",
+                "https://www.bloomberg.com"
             ]
 
-            # Visit 2-3 random sites
-            sites_to_visit = random.randint(2, 3)
-            selected_sites = random.sample(break_sites, sites_to_visit)
+            # Random number of sites to visit (1-4 sites)
+            sites_to_visit = random.randint(1, 4)
+            selected_sites = random.sample(break_sites, min(sites_to_visit, len(break_sites)))
 
             original_window = self.driver.current_window_handle
 
@@ -530,26 +719,85 @@ class NYCParkingTicketScraper:
                     self.driver.switch_to.window(all_windows[-1])
 
                     # Wait for page to load
-                    self.random_delay(2, 4)
+                    self.random_delay(2, 5)
 
-                    # Simulate human activity on the page
-                    for _ in range(random.randint(3, 7)):
+                    # Enhanced human activity simulation
+                    activity_rounds = random.randint(2, 6)
+                    for round_num in range(activity_rounds):
+                        # Random scrolling
+                        if random.random() < 0.8:  # 80% chance
+                            scroll_amount = random.randint(100, 800)
+                            self.driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+                            self.random_delay(0.5, 1.5)
+
+                        # Random mouse movements
                         self.simulate_human_behavior()
-                        self.random_delay(0.5, 2.0)
 
-                        # Random clicks on the page (but safely)
-                        try:
-                            if random.random() < 0.3:  # 30% chance
-                                body = self.driver.find_element(By.TAG_NAME, "body")
-                                self.actions.move_to_element(body).click().perform()
-                                self.random_delay(0.2, 0.8)
-                        except:
-                            pass
+                        # Random clicking on safe elements
+                        if random.random() < 0.4:  # 40% chance to click something
+                            try:
+                                # Try to find safe clickable elements
+                                safe_elements = []
+
+                                # Look for common safe elements
+                                possible_selectors = [
+                                    "//body",
+                                    "//header",
+                                    "//nav",
+                                    "//div[@class*='content']",
+                                    "//div[@class*='main']",
+                                    "//span",
+                                    "//p",
+                                    "//h1", "//h2", "//h3",
+                                    "//div[@role='button']"
+                                ]
+
+                                for selector in possible_selectors[:3]:  # Try first 3
+                                    try:
+                                        elements = self.driver.find_elements(By.XPATH, selector)
+                                        if elements:
+                                            safe_elements.extend(elements[:2])  # Take first 2
+                                    except:
+                                        continue
+
+                                if safe_elements:
+                                    random_element = random.choice(safe_elements)
+                                    if random_element.is_displayed():
+                                        # Move to element and click
+                                        self.actions.move_to_element(random_element).perform()
+                                        self.random_delay(0.2, 0.6)
+
+                                        # Sometimes just hover, sometimes click
+                                        if random.choice([True, False]):
+                                            try:
+                                                random_element.click()
+                                                print(f"    🖱️ Clicked a {random_element.tag_name} element")
+                                            except:
+                                                print(f"    🖱️ Hovered over {random_element.tag_name} element")
+
+                                        self.random_delay(0.3, 1.0)
+
+                            except Exception as click_error:
+                                # Safe fallback - just click body
+                                try:
+                                    body = self.driver.find_element(By.TAG_NAME, "body")
+                                    self.actions.move_to_element(body).click().perform()
+                                    print(f"    🖱️ Clicked page body")
+                                except:
+                                    pass
+
+                        # Random delay between activities
+                        self.random_delay(0.5, 2.5)
 
                     # Stay on the page for a realistic amount of time
-                    browse_time = random.uniform(5, 15)
+                    browse_time = random.uniform(3, 18)  # 3-18 seconds
                     print(f"    📖 Browsing for {browse_time:.1f} seconds...")
                     time.sleep(browse_time)
+
+                    # Sometimes scroll back up before leaving
+                    if random.random() < 0.3:
+                        self.driver.execute_script("window.scrollTo(0, 0);")
+                        self.random_delay(0.5, 1.0)
 
                     # Close the tab
                     self.driver.close()
@@ -573,7 +821,7 @@ class NYCParkingTicketScraper:
                     print("✓ Switched to available window")
 
             # Wait a bit before resuming
-            final_break_time = random.uniform(3, 8)
+            final_break_time = random.uniform(2, 8)
             print(f"🏖️ Break complete - final pause of {final_break_time:.1f} seconds before resuming...")
             time.sleep(final_break_time)
 
