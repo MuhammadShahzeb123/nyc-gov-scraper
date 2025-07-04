@@ -274,7 +274,7 @@ class NYCParkingTicketScraper:
         try:
             # Get the full page source
             page_source = self.driver.page_source.lower()
-            
+
             # Various captcha error patterns to check for
             captcha_patterns = [
                 "unable to verify recaptcha with google",
@@ -291,13 +291,13 @@ class NYCParkingTicketScraper:
                 "captcha challenge",
                 "human verification required"
             ]
-            
+
             # Check for any of these patterns
             for pattern in captcha_patterns:
                 if pattern in page_source:
                     print(f"🤖 CAPTCHA DETECTED: Found pattern '{pattern}'")
                     return True
-            
+
             # Also check for common reCAPTCHA elements
             captcha_elements = [
                 "//div[@class*='recaptcha']",
@@ -307,7 +307,7 @@ class NYCParkingTicketScraper:
                 "//*[contains(@class, 'g-recaptcha')]",
                 "//*[contains(text(), 'I am not a robot')]"
             ]
-            
+
             for xpath in captcha_elements:
                 try:
                     elements = self.driver.find_elements(By.XPATH, xpath)
@@ -316,9 +316,9 @@ class NYCParkingTicketScraper:
                         return True
                 except:
                     continue
-            
+
             return False
-            
+
         except Exception as e:
             print(f"⚠️ Error checking for captcha: {type(e).__name__}")
             return False
@@ -326,16 +326,16 @@ class NYCParkingTicketScraper:
     def handle_captcha_retry(self, violation_number):
         """Handle captcha detection by wandering and retrying once"""
         print(f"🤖 Captcha detected for violation {violation_number} - initiating evasion sequence...")
-        
+
         # Take a random break to avoid captcha
         self.take_random_break()
-        
+
         # Return to base URL
         self.return_to_base_url()
-        
+
         # Wait a bit more
         self.random_delay(3, 8)
-        
+
         # Try the search one more time
         print(f"🔄 Retrying search for violation {violation_number} after captcha evasion...")
         return self.search_violation_number_internal(violation_number, is_retry=True)
