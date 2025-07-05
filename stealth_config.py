@@ -146,8 +146,8 @@ STEALTH_SCRIPTS = [
 SCROLLING = {
     'enabled': True,
     'min_scroll': 100,
-    'max_scroll': 300,
-    'scroll_back_probability': 0.5,  # 50% chance to scroll back
+    'max_scroll': 500,
+    'scroll_back_probability': 0.3,  # 30% chance to scroll back
     'scroll_delay_min': 0.5,
     'scroll_delay_max': 1.0
 }
