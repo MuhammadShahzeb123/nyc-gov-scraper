@@ -177,7 +177,7 @@ class PleadAndPayScraperSB:
             uc=True,
             headless=False,
             # Add extensions directory if it exists
-            extension_dir="extensions" if os.path.exists("extensions") else None
+            #extension_dir="extensions" if os.path.exists("extensions") else None
         ) as sb:
             self._run_automation_steps(sb)
 
@@ -194,7 +194,8 @@ class PleadAndPayScraperSB:
 
             # Step 2: Initial Page - Click radio button and submit using CDP
             print("🖱️ Initial Page: Clicking radio button and submit (CDP Mode)...")
-            sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label')
+            # add wait for selector to be clickable
+            sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=15)
             sb.cdp.sleep(0.5)
             sb.cdp.click('//*[@id="btn-dmv-submit-div"]/input')
             sb.cdp.sleep(2)
@@ -207,17 +208,20 @@ class PleadAndPayScraperSB:
             # Click first radio button
             sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label')
             sb.cdp.sleep(0.5)
-            
+            sb.cdp.scroll_into_view('//*[@id="TypeOfSearchTicket"]')
             # Try to click other radio buttons (optional)
             try:
                 sb.cdp.click('//*[@id="DMVForm"]/div[6]/div/fieldset[1]/div/div[1]/label')
             except Exception as e:
-                print(f"⚠️ Optional click failed: {e}")
-            
+                pass
+            try:
+                sb.cdp.click('//*[@id="TypeOfSearchTicket"]')
+            except Exception as e:
+                pass
             try:
                 sb.cdp.click('//*[@id="TypeOfEnterInfoY"]')
             except Exception as e:
-                print(f"⚠️ Optional click failed: {e}")
+                pass
 
             # Fill in the form fields using CDP
             print(f"   • Client ID: {self.client_id}")
