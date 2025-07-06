@@ -116,7 +116,18 @@ class PleadAndPayScraperSB:
 
             # Step 4: Continue Page - Click continue using CDP
             print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
-            sb.cdp.click('//*[@id="Continue"]')
+            try:
+                sb.cdp.click('//*[@id="Continue"]')
+            except Exception as e:
+                pass
+            try:
+                sb.cdp.click("button", text="Continue")
+            except Exception as e:
+                pass
+            try:
+                sb.cdp.gui_press_key(["Enter"])
+            except Exception as e:
+                pass
             sb.cdp.sleep(3)
             print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
