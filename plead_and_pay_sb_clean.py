@@ -45,6 +45,15 @@ class PleadAndPayScraperSB:
         else:
             print("📝 No data to save.")
 
+    def _reload_again_and_again(self, sb):
+        self.page = sb.cdp.get_page_source()
+        if "ERR" in self.page:
+            sb.cdp.refresh()
+        if "ERR" in self.page:
+            self._reload_again_and_again(sb)
+
+
+
     def run_plead_and_pay_workflow(self):
         """Execute the complete plead and pay workflow using SeleniumBase"""
 
@@ -64,102 +73,137 @@ class PleadAndPayScraperSB:
 
     def _run_automation_steps(self, sb):
         """Execute the automation steps using CDP Mode for stealth"""
-        try:
-            print("🌐 Chrome started successfully!")
+        # Define base URL for restart checks
+        BASE_URL = "https://transact2.dmv.ny.gov/pleadnpay/"
+        max_retries = 3
+        current_retry = 0
+        success = False
 
-            # Step 1: Open the plead and pay page using CDP Mode
-            print("📋 Opening DMV Plead and Pay page with CDP Mode...")
-            sb.activate_cdp_mode("https://transact2.dmv.ny.gov/pleadnpay/")
-            sb.cdp.sleep(2)
-            print(f"🔗 Current URL: {sb.cdp.get_current_url()}")
+        # Helper function to check if we're back at base URL
+        def is_at_base_url():
+            current_url = sb.cdp.get_current_url()
+            return current_url == BASE_URL or current_url == BASE_URL.strip('/')
 
-            # Step 2: Initial Page - Click radio button and submit using CDP
-            print("🖱️ Initial Page: Clicking radio button and submit (CDP Mode)...")
-            sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=15)
-            sb.cdp.sleep(0.5)
-            sb.cdp.click('//*[@id="btn-dmv-submit-div"]/input')
-            sb.cdp.sleep(2)
-            print(f"🔗 After initial submit: {sb.cdp.get_current_url()}")
-
-            # Step 3: Second Page - Fill out the form using CDP
-            print("📝 Second Page: Filling out form (CDP Mode)...")
-
-            # Click first radio button
-            sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label')
-            sb.cdp.sleep(0.5)
-            sb.cdp.scroll_into_view('//*[@id="TypeOfSearchTicket"]')
-            sb.cdp.click('//*[@id="TypeOfSearchTicket"]')
-            sb.cdp.click('//*[@id="DMVForm"]/div[6]/div/fieldset[1]/div/div[1]/label')
-            sb.cdp.sleep(0.5)
-
-            # Fill in the form fields using CDP
-            print(f"   • Client ID: {self.client_id}")
-            sb.cdp.type('//*[@id="sClientID"]', self.client_id)
-            sb.cdp.sleep(1)
-
-            print(f"   • Ticket ID: {self.ticket_id}")
-            sb.cdp.sleep(2)
-            sb.cdp.type('//*[@id="ssearchTxt"]', self.ticket_id)
-            sb.cdp.sleep(0.5)
-
-            print(f"   • Email: {self.email}")
-            sb.cdp.type('//*[@id="sEmailAddress"]', self.email)
-            sb.cdp.sleep(1)
-
-            sb.cdp.type('//*[@id="sEmailAddress2"]', self.email)
-            sb.cdp.sleep(1)
-
-            # Submit the form using CDP
-            print("🖱️ Submitting form (CDP Mode)...")
-            sb.cdp.click('//*[@id="submitBtn"]')
-            sb.cdp.sleep(3)
-
-            # Step 4: Continue Page - Click continue using CDP
-            print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
+        while current_retry < max_retries and not success:
             try:
+                print(f"\n🔄 Attempt #{current_retry + 1} of {max_retries}")
+                print("🌐 Chrome started successfully!")
+
+                # Step 1: Open initial page
+                print("📋 Opening DMV Plead and Pay page with CDP Mode...")
+                sb.activate_cdp_mode(BASE_URL)
+                self._reload_again_and_again(sb)
+                sb.cdp.sleep(2)
+                print(f"🔗 Current URL: {sb.cdp.get_current_url()}")
+
+                # Step 2: Initial Page - Click radio button and submit
+                print("🖱️ Initial Page: Clicking radio button and submit (CDP Mode)...")
+                sb.cdp.wait_for_element_visible('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=None)
+                sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=15)
+                sb.cdp.sleep(0.5)
+                sb.cdp.click('//*[@id="btn-dmv-submit-div"]/input')
+                sb.cdp.sleep(2)
+                print(f"🔗 After initial submit: {sb.cdp.get_current_url()}")
+
+                # Check if we're back at base URL
+                if is_at_base_url():
+                    print("⚠️ Unexpectedly returned to base URL after Step 2. Restarting...")
+                    current_retry += 1
+                    continue
+
+                # Step 3: Second Page - Fill out form
+                print("📝 Second Page: Filling out form (CDP Mode)...")
+                self._reload_again_and_again(sb)
+                sb.cdp.wait_for_element_visible('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=None)
+                sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label')
+                sb.cdp.sleep(0.5)
+                sb.cdp.scroll_into_view('//*[@id="TypeOfSearchTicket"]')
+                sb.cdp.click('//*[@id="TypeOfSearchTicket"]')
+                sb.cdp.click('//*[@id="DMVForm"]/div[6]/div/fieldset[1]/div/div[1]/label')
+                sb.cdp.sleep(0.5)
+
+                # Fill form fields
+                print(f"   • Client ID: {self.client_id}")
+                sb.cdp.type('//*[@id="sClientID"]', self.client_id)
+                sb.cdp.sleep(1)
+
+                print(f"   • Ticket ID: {self.ticket_id}")
+                sb.cdp.wait_for_element_visible('//*[@id="ssearchTxt"]', timeout=None)
+                sb.cdp.type('//*[@id="ssearchTxt"]', self.ticket_id)
+                sb.cdp.sleep(0.5)
+
+                print(f"   • Email: {self.email}")
+                sb.cdp.type('//*[@id="sEmailAddress"]', self.email)
+                sb.cdp.sleep(1)
+                sb.cdp.type('//*[@id="sEmailAddress2"]', self.email)
+                sb.cdp.sleep(1)
+
+                # Submit form
+                print("🖱️ Submitting form (CDP Mode)...")
+                sb.cdp.wait_for_element_visible('//*[@id="submitBtn"]', timeout=None)
+                sb.cdp.scroll_into_view('//*[@id="submitBtn"]')
+                sb.cdp.click("#submitBtn")
+                sb.cdp.sleep(3)
+                self._reload_again_and_again(sb)
+
+                # Check if we're back at base URL
+                if is_at_base_url():
+                    print("⚠️ Unexpectedly returned to base URL after form submit. Restarting...")
+                    current_retry += 1
+                    continue
+
+                # Step 4: Continue Page
+                sb.cdp.wait_for_element_visible('//*[@id="Continue"]', timeout=None)
+                print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
+                sb.cdp.sleep(2)
+                sb.cdp.scroll_into_view('//*[@id="Continue"]')
                 sb.cdp.click('//*[@id="Continue"]')
-            except Exception as e:
-                pass
-            try:
-                sb.cdp.click("button", text="Continue")
-            except Exception as e:
-                pass
-            try:
-                sb.cdp.gui_press_key(["Enter"])
-            except Exception as e:
-                pass
-            sb.cdp.sleep(3)
-            print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
+                sb.cdp.sleep(3)
+                print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
-            # Step 5: Wait for ticket information page to load
-            if not self.wait_for_ticket_information_page(sb):
-                print("⚠️  Still not on the correct page, but continuing with extraction...")
+                # Check if we're back at base URL
+                if is_at_base_url():
+                    print("⚠️ Unexpectedly returned to base URL after continue click. Restarting...")
+                    current_retry += 1
+                    continue
 
-            # NEW: Explicitly wait for ticket information to appear
-            print("⏳ Waiting for ticket information to load...")
-            self.wait_for_ticket_container(sb)
+                # Step 5: Wait for ticket information
+                if not self.wait_for_ticket_information_page(sb):
+                    print("⚠️  Still not on correct page, but continuing...")
 
-            # Step 6: Get page source and extract ticket info using Python regex
-            print("🎫 Extracting ticket information from page source...")
-            self.extract_ticket_info_from_source(sb)
-
-            # Step 7: Save results
-            self.save_results_to_json()
-
-            print("✅ Plead and Pay workflow completed successfully!")
-        except Exception as e:
-            print(f"❌ An error occurred: {e}")
-            # Still try to extract whatever information we can
-            try:
-                print("🔄 Attempting to extract data despite errors...")
+                # Step 6: Extract ticket info
+                print("⏳ Waiting for ticket information to load...")
+                self.wait_for_ticket_container(sb)
+                print("🎫 Extracting ticket information from page source...")
                 self.extract_ticket_info_from_source(sb)
-                self.save_results_to_json()
-            except Exception as extract_error:
-                print(f"❌ Error during extraction: {extract_error}")
 
-        finally:
-            print("🔚 Keeping browser open for 10 seconds...")
-            sb.cdp.sleep(10)
+                # Step 7: Save results
+                self.save_results_to_json()
+                print("✅ Plead and Pay workflow completed successfully!")
+                success = True
+
+            except Exception as e:
+                print(f"❌ An error occurred: {e}")
+                # Check if we're back at base URL during exception
+                if is_at_base_url():
+                    print("⚠️ Error occurred and returned to base URL. Restarting...")
+                    current_retry += 1
+                else:
+                    # Attempt extraction even with errors
+                    try:
+                        print("🔄 Attempting to extract data despite errors...")
+                        self.extract_ticket_info_from_source(sb)
+                        self.save_results_to_json()
+                        success = True  # Consider this attempt successful
+                    except Exception as extract_error:
+                        print(f"❌ Error during extraction: {extract_error}")
+                        current_retry += 1
+
+        # Final browser pause
+        print("🔚 Keeping browser open for 10 seconds...")
+        sb.cdp.sleep(10)
+
+
 
     def is_ticket_information_page(self, sb):
         """Check if the current page is the ticket information page"""
@@ -377,7 +421,7 @@ if __name__ == "__main__":
         print("No data found in l_and_v_list.csv")
     else:
         for row in lines[1:]:
-            client_id, ticket_id = row.strip().split(',')
+            ticket_id, client_id = row.strip().split(',')
             print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
             # Create scraper instance

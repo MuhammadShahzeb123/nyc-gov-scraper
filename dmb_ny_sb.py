@@ -4,6 +4,7 @@ import os
 import json
 import random
 import time
+import datetime
 
 class NYCDMVWebSummonsScraper:
     def __init__(self, client_id=None, ticket_id=None):
@@ -27,11 +28,12 @@ class NYCDMVWebSummonsScraper:
 
     def scrape_tickets_with_regex(self, sb):
         """Scrape all tickets using regex pattern - EXACT SAME AS dmb_ny.py"""
+        sb.cdp.sleep(5)  # Ensure page is fully loaded
         print("🔍 Scraping tickets using regex...")
 
         try:
             # Get page source
-            page_source = sb.get_page_source()
+            page_source = sb.cdp.get_page_source()
 
             # EXACT SAME regex pattern from dmb_ny.py
             pattern = r'<label for="chk-([^"]+)">\s*<span[^>]*><strong>Ticket Number:</strong>\s*([^<]+)</span><br>\s*<span[^>]*><strong>Section of Law:</strong>\s*([^<]+)</span><br>\s*<span[^>]*><strong>Violation:</strong>\s*([^<]+)</span><br>\s*<span[^>]*><strong>Violation Date:</strong>\s*([^<]+)</span>'
@@ -70,7 +72,8 @@ class NYCDMVWebSummonsScraper:
         if not self.scraped_data:
             print("No data to save")
             return
-
+        filename_name = filename.split('.')[0]
+        filename = f"{filename_name}_{self.client_id}_{self.ticket_id}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         filepath = os.path.join(self.results_dir, filename)
         try:
             with open(filepath, 'w') as f:
@@ -80,10 +83,10 @@ class NYCDMVWebSummonsScraper:
             print(f"Error saving results: {e}")
 
     def reload_page_again_and_again(self, sb):
-        if "ERR" in sb.get_page_source():
-            sb.reload_page()
+        if "ERR" in sb.cdp.get_page_source():
+            sb.cdp.reload_page()
             time.sleep(2)
-        if "ERR" in sb.get_page_source():
+        if "ERR" in sb.cdp.get_page_source():
             self.reload_page_again_and_again(sb)
 
     def run_scraping_workflow(self):
@@ -101,27 +104,29 @@ class NYCDMVWebSummonsScraper:
 
             # Open the main page
             print("📋 Opening NYC DMV Web Summons page...")
-            sb.open("https://process.dmv.ny.gov/WebSummons/")
-
+            sb.activate_cdp_mode("https://process.dmv.ny.gov/WebSummons/")
+            self.reload_page_again_and_again(sb)
             # Simple wait
             time.sleep(3)
 
-            # Click the first submit button
+            # Click the first submit buttonc
             print("🖱️ Clicking first submit button...")
-            sb.click('#submit')
-
+            sb.cdp.wait_for_element_visible('//*[@id="submit"]', timeout=60000)
+            sb.cdp.click('//*[@id="submit"]')
+            self.reload_page_again_and_again(sb)
             # Simple wait
             time.sleep(2)
 
             # Fill in the form details simply
             print("📝 Filling in form details...")
+            sb.cdp.wait_for_element_visible('//*[@id="sClientID"]', timeout=None)
             print(f"   • Client ID: {self.client_id}")
-            sb.type('#sClientID', self.client_id)
+            sb.cdp.type('//*[@id="sClientID"]', self.client_id)
 
             time.sleep(1)
 
             print(f"   • Ticket Number: {self.ticket_id}")
-            sb.type('#sTicketNum', self.ticket_id)
+            sb.cdp.type('#sTicketNum', self.ticket_id)
 
             time.sleep(1)
 
@@ -129,17 +134,20 @@ class NYCDMVWebSummonsScraper:
             random_email = self.generate_random_gmail()
             print(f"   • Email: {random_email}")
 
-            sb.type('#sEmailAddress', random_email)
+            sb.cdp.type('#sEmailAddress', random_email)
             time.sleep(1)
 
-            sb.type('#sEmailAddress2', random_email)
+            sb.cdp.type('#sEmailAddress2', random_email)
             time.sleep(2)
 
             # Click the final submit button
             print("🖱️ Clicking final submit button...")
-            sb.click('//*[@id="submit order"]')
-
-            # Wait for results page
+            sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[2]/button')
+            sb.cdp.wait_for_element_visible('/html/body/div[1]/div[5]/form/div[2]/button', timeout=60000)
+            try:
+                sb.cdp.click('//*[@id="submit order"]')
+            except Exception as e:
+                sb.cdp.click('/html/body/div[1]/div[5]/form/div[2]/button')  # Fallback for different button ID
             time.sleep(5)
 
             # can you add an if statement to check if the page has loaded correctly?
@@ -160,7 +168,7 @@ if __name__ == "__main__":
         print("No data found in l_and_v_list.csv")
     else:
         for row in lines[1:]:
-            client_id, ticket_id = row.strip().split(',')
+            ticket_id, client_id = row.strip().split(',')
             print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
             scraper = NYCDMVWebSummonsScraper(client_id=client_id, ticket_id=ticket_id)
