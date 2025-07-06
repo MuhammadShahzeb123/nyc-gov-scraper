@@ -1,0 +1,277 @@
+[
+  {
+    "session_id": "session_1751818963",
+    "timestamp": "2025-07-06 21:24:06",
+    "status": "Success",
+    "tickets": [
+      {
+        "ticketNumber": "B255005941",
+        "violationDescription": "DISOB TRAFFIC DEVICE",
+        "violationDate": "05/28/2025",
+        "hearingDateTime": "&nbsp; 07/28/2025 10:30am",
+        "hearingLocation": "&nbsp; MANHATTAN NORTH Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b1G",
+            "name": "b1",
+            "value": "G|B255005941|DISOB TRAFFIC DEVICE|2025-05-28",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b1S",
+            "name": "b1",
+            "value": "S|B255005941|DISOB TRAFFIC DEVICE|2025-05-28",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b1N",
+            "name": "b1",
+            "value": "N|B255005941|DISOB TRAFFIC DEVICE|2025-05-28",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B255005931",
+        "violationDescription": "IMPROPER TURN",
+        "violationDate": "05/28/2025",
+        "hearingDateTime": "&nbsp; 07/28/2025 10:30am",
+        "hearingLocation": "&nbsp; MANHATTAN NORTH Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b2G",
+            "name": "b2",
+            "value": "G|B255005931|IMPROPER TURN|2025-05-28",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b2S",
+            "name": "b2",
+            "value": "S|B255005931|IMPROPER TURN|2025-05-28",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b2N",
+            "name": "b2",
+            "value": "N|B255005931|IMPROPER TURN|2025-05-28",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B25T005119",
+        "violationDescription": "FLD YIELD ROW TO PED",
+        "violationDate": "04/17/2025",
+        "hearingDateTime": "&nbsp; 06/24/2026 10:30am",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "03",
+        "pleaOptions": [
+          {
+            "id": "b3G",
+            "name": "b3",
+            "value": "G|B25T005119|FLD YIELD ROW TO PED|2025-04-17",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b3S",
+            "name": "b3",
+            "value": "S|B25T005119|FLD YIELD ROW TO PED|2025-04-17",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b3N",
+            "name": "b3",
+            "value": "N|B25T005119|FLD YIELD ROW TO PED|2025-04-17",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B24X012424",
+        "violationDescription": "DIRTY OR COVERED PLT",
+        "violationDate": "10/21/2024",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "0",
+        "pleaOptions": [
+          {
+            "id": "b4G",
+            "name": "b4",
+            "value": "G|B24X012424|DIRTY OR COVERED PLT|2024-10-21",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b4S",
+            "name": "b4",
+            "value": "S|B24X012424|DIRTY OR COVERED PLT|2024-10-21",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b4N",
+            "name": "b4",
+            "value": "N|B24X012424|DIRTY OR COVERED PLT|2024-10-21",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B24X012426",
+        "violationDescription": "FLD CMPLY W/ ORD-NYC",
+        "violationDate": "10/21/2024",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b5G",
+            "name": "b5",
+            "value": "G|B24X012426|FLD CMPLY W/ ORD-NYC|2024-10-21",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b5S",
+            "name": "b5",
+            "value": "S|B24X012426|FLD CMPLY W/ ORD-NYC|2024-10-21",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b5N",
+            "name": "b5",
+            "value": "N|B24X012426|FLD CMPLY W/ ORD-NYC|2024-10-21",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B24X012425",
+        "violationDescription": "UNAPPROVD GOGGLES-MC",
+        "violationDate": "10/21/2024",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "0",
+        "pleaOptions": [
+          {
+            "id": "b6G",
+            "name": "b6",
+            "value": "G|B24X012425|UNAPPROVD GOGGLES-MC|2024-10-21",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b6S",
+            "name": "b6",
+            "value": "S|B24X012425|UNAPPROVD GOGGLES-MC|2024-10-21",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b6N",
+            "name": "b6",
+            "value": "N|B24X012425|UNAPPROVD GOGGLES-MC|2024-10-21",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B24X012416",
+        "violationDescription": "DRIVING ON SIDEWALK",
+        "violationDate": "10/21/2024",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b7G",
+            "name": "b7",
+            "value": "G|B24X012416|DRIVING ON SIDEWALK|2024-10-21",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b7S",
+            "name": "b7",
+            "value": "S|B24X012416|DRIVING ON SIDEWALK|2024-10-21",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b7N",
+            "name": "b7",
+            "value": "N|B24X012416|DRIVING ON SIDEWALK|2024-10-21",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B24X012407",
+        "violationDescription": "DISOB TRAFFIC DEVICE",
+        "violationDate": "10/21/2024",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b8G",
+            "name": "b8",
+            "value": "G|B24X012407|DISOB TRAFFIC DEVICE|2024-10-21",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b8S",
+            "name": "b8",
+            "value": "S|B24X012407|DISOB TRAFFIC DEVICE|2024-10-21",
+            "label": "Check for Other Available Hearing Dates"
+          },
+          {
+            "id": "b8N",
+            "name": "b8",
+            "value": "N|B24X012407|DISOB TRAFFIC DEVICE|2024-10-21",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B23Y013343",
+        "violationDescription": "DISOB TRAFFIC DEVICE",
+        "violationDate": "11/22/2023",
+        "hearingDateTime": "&nbsp; 12/11/2025 4:30 pm",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "02",
+        "pleaOptions": [
+          {
+            "id": "b9G",
+            "name": "b9",
+            "value": "G|B23Y013343|DISOB TRAFFIC DEVICE|2023-11-22",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b9N",
+            "name": "b9",
+            "value": "N|B23Y013343|DISOB TRAFFIC DEVICE|2023-11-22",
+            "label": "Take No Action Now"
+          }
+        ]
+      },
+      {
+        "ticketNumber": "B23F011612",
+        "violationDescription": "UNAPPROVD GOGGLES-MC",
+        "violationDate": "09/06/2023",
+        "hearingDateTime": "&nbsp; 02/26/2026 10:30am",
+        "hearingLocation": "&nbsp; BRONX Opens new window",
+        "points": "0",
+        "pleaOptions": [
+          {
+            "id": "b10G",
+            "name": "b10",
+            "value": "G|B23F011612|UNAPPROVD GOGGLES-MC|2023-09-06",
+            "label": "Change Plea to Guilty and Pay"
+          },
+          {
+            "id": "b10N",
+            "name": "b10",
+            "value": "N|B23F011612|UNAPPROVD GOGGLES-MC|2023-09-06",
+            "label": "Take No Action Now"
+          }
+        ]
+      }
+    ]
+  }
+]
