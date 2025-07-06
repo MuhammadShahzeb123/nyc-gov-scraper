@@ -72,6 +72,19 @@ class PleadAndPayScraperSB:
         ) as sb:
             self._run_automation_steps(sb)
 
+    def throttle(self, sb, offline=False, latency=100, download_throughput=420 * 1024 / 8, upload_throughput=250 * 1024 / 8):
+        # Convert kbps to bytes/sec
+        sb.execute_cdp_cmd("Network.enable", {})
+        sb.execute_cdp_cmd("Network.emulateNetworkConditions", {
+            "offline": offline,
+            "latency": latency,  # ms
+            "downloadThroughput": download_throughput,
+            "uploadThroughput": upload_throughput,
+            "connectionType": "cellular3g"
+        })
+
+
+
     def _run_automation_steps(self, sb):
         """Execute the automation steps using CDP Mode for stealth"""
         # Define base URL for restart checks
@@ -93,8 +106,9 @@ class PleadAndPayScraperSB:
                 # Step 1: Open initial page
                 print("📋 Opening DMV Plead and Pay page with CDP Mode...")
                 sb.activate_cdp_mode(BASE_URL)
+                # self.throttle(sb)
+                sb.cdp.sleep(10)
                 self._reload_again_and_again(sb)
-                sb.cdp.sleep(2)
                 print(f"🔗 Current URL: {sb.cdp.get_current_url()}")
 
                 # Step 2: Initial Page - Click radio button and submit
@@ -128,12 +142,6 @@ class PleadAndPayScraperSB:
                 print(f"   • Client ID: {self.client_id}")
                 sb.cdp.type('//*[@id="sClientID"]', self.client_id)
                 sb.cdp.sleep(1)
-
-                print(f"   • Ticket ID: {self.ticket_id}")
-                sb.cdp.wait_for_element_visible('//*[@id="ssearchTxt"]', timeout=None)
-                sb.cdp.type('//*[@id="ssearchTxt"]', self.ticket_id)
-                sb.cdp.sleep(0.5)
-
                 print(f"   • Email: {self.email}")
                 sb.cdp.type('//*[@id="sEmailAddress"]', self.email)
                 sb.cdp.sleep(0.2)
@@ -142,22 +150,28 @@ class PleadAndPayScraperSB:
                 sb.cdp.type('//*[@id="sEmailAddress2"]', self.email)
                 sb.cdp.sleep(0.2)
 
+                print(f"   • Ticket ID: {self.ticket_id}")
+                sb.cdp.type('//*[@id="ssearchTxt"]', self.ticket_id, timeout=60000)
+                sb.cdp.sleep(0.5)
+
+
                 # Submit form
                 print("🖱️ Submitting form (CDP Mode)...")
                 # sb.cdp.click_if_visible('//*[@id="submitBtn"]', timeout=None)
                 sb.cdp.scroll_to_bottom()
                 # sb.cdp.scroll_into_view('//*[@id="submitBtn"]')
-                sb.cdp.wait_for_element_visible('//*[@id="submitBtn"]', timeout=None)
+                sb.cdp.wait_for_element_visible('/html/body/div[1]/div[5]/form/div[8]/input[2]', timeout=None)
                 try:
-                    sb.cdp.gui_click_element('//*[@id="submitBtn"]', timeout=None)
+                    sb.cdp.click("/html/body/div[1]/div[5]/form/div[8]/input[2]")
+
                 except Exception:
                     try:
                         sb.cdp.press_keys('\t', timeout=None)
                     except Exception:
                         try:
-                            sb.cdp.click_if_visible('//*[@id="submitBtn"]', timeout=None)
+                            sb.cdp.click_if_visible('/html/body/div[1]/div[5]/form/div[8]/input[2]', timeout=None)
                         except Exception as e:
-                            sb.cdp.click("#submitBtn")
+                            sb.cdp.gui_click_element('/html/body/div[1]/div[5]/form/div[8]/input[2]', timeout=None)
 
                 sb.cdp.sleep(3)
                 self._reload_again_and_again(sb)
@@ -169,20 +183,20 @@ class PleadAndPayScraperSB:
                     continue
 
                 # Step 4: Continue Page
-                sb.cdp.wait_for_element_visible('//*[@id="Continue"]', timeout=None)
+                sb.cdp.wait_for_element_visible('/html/body/div[1]/div[5]/form/div[3]/input[2]', timeout=None)
                 print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
                 sb.cdp.sleep(2)
-                sb.cdp.scroll_into_view('//*[@id="Continue"]')
+                sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[3]/input[2]')
                 try:
-                    sb.cdp.gui_click_element('//*[@id="Continue"]', timeout=None)
+                    sb.cdp.gui_click_element('/html/body/div[1]/div[5]/form/div[3]/input[2]', timeout=None)
                 except Exception:
                     try:
                         sb.cdp.press_keys('\t', timeout=None)
                     except Exception:
                         try:
-                            sb.cdp.click_if_visible('//*[@id="Continue"]', timeout=None)
+                            sb.cdp.click_if_visible('/html/body/div[1]/div[5]/form/div[3]/input[2]', timeout=None)
                         except Exception as e:
-                            sb.cdp.click("#Continue")
+                            sb.cdp.click("/html/body/div[1]/div[5]/form/div[3]/input[2]")
                 sb.cdp.sleep(3)
                 print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
@@ -224,9 +238,6 @@ class PleadAndPayScraperSB:
                         print(f"❌ Error during extraction: {extract_error}")
                         current_retry += 1
 
-        # Final browser pause
-        print("🔚 Keeping browser open for 10 seconds...")
-        sb.cdp.sleep(10)
 
 
 
