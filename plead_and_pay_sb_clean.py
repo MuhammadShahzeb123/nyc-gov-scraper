@@ -358,23 +358,23 @@ class PleadAndPayScraperSB:
 
 
 if __name__ == "__main__":
-    # can you read the l_and_v_list.csv and import the client_id and ticket_id from it.... assume the first line is the header and the second line contains the values
-
-    with open('l_and_v_list.csv', 'r') as f:
+    # Read all rows from CSV (skip header)
+    with open('l_and_v_list.csv', 'r', encoding='utf-8') as f:
         lines = f.readlines()
-        # Assuming the first line contains headers and the second line contains data
-        if len(lines) > 1:
-            client_id, ticket_id = lines[1].strip().split(',')
-        else:
-            print("No data found in l_and_v_list.csv")
-            client_id, ticket_id = None, None
 
-    # Create scraper instance
-    scraper = PleadAndPayScraperSB(client_id=client_id, ticket_id=ticket_id)
+    if len(lines) <= 1:
+        print("No data found in l_and_v_list.csv")
+    else:
+        for row in lines[1:]:
+            client_id, ticket_id = row.strip().split(',')
+            print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
-    # Generate random email if not provided
-    if not scraper.email:
-        scraper.email = scraper.generate_random_email()
+            # Create scraper instance
+            scraper = PleadAndPayScraperSB(client_id=client_id, ticket_id=ticket_id)
 
-    # Run the workflow
-    scraper.run_plead_and_pay_workflow()
+            # Generate random email if not provided
+            if not scraper.email:
+                scraper.email = scraper.generate_random_email()
+
+            # Run the workflow for this row
+            scraper.run_plead_and_pay_workflow()

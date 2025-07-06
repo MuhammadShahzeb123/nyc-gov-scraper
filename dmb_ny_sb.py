@@ -152,17 +152,16 @@ class NYCDMVWebSummonsScraper:
             print("✅ Scraping workflow completed successfully!")
 
 if __name__ == "__main__":
-    # can you read the l_and_v_list.csv and import the client_id and ticket_id from it?
-
-    with open('l_and_v_list.csv', 'r') as f:
+    # Read all rows from CSV (skip header)
+    with open('l_and_v_list.csv', 'r', encoding='utf-8') as f:
         lines = f.readlines()
-        # Assuming the first line contains headers and the second line contains data
-        if len(lines) > 1:
-            client_id, ticket_id = lines[1].strip().split(',')
-        else:
-            print("No data found in l_and_v_list.csv")
-            client_id, ticket_id = None, None
 
+    if len(lines) <= 1:
+        print("No data found in l_and_v_list.csv")
+    else:
+        for row in lines[1:]:
+            client_id, ticket_id = row.strip().split(',')
+            print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
-    scraper = NYCDMVWebSummonsScraper(client_id=client_id, ticket_id=ticket_id)
-    scraper.run_scraping_workflow()
+            scraper = NYCDMVWebSummonsScraper(client_id=client_id, ticket_id=ticket_id)
+            scraper.run_scraping_workflow()
