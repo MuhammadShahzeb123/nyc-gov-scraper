@@ -23,7 +23,7 @@ class PleadAndPayScraperSB:
     def generate_random_email(self):
         """Generate a random email address"""
         japanese_names = ["tonie", "satoshi", "yuki", "haruto", "sakura", "akira", "emi", "kento", "miku"]
-        sites = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
+        sites = ["gmail.com"]
         r = random.randint(100, 1000)
 
         return f"{random.choice(japanese_names)}{r}@{random.choice(sites)}"
@@ -49,6 +49,7 @@ class PleadAndPayScraperSB:
         self.page = sb.cdp.get_page_source()
         if "ERR" in self.page:
             sb.cdp.refresh()
+            sb.cdp.sleep(2)
         if "ERR" in self.page:
             self._reload_again_and_again(sb)
 
@@ -100,6 +101,7 @@ class PleadAndPayScraperSB:
                 print("🖱️ Initial Page: Clicking radio button and submit (CDP Mode)...")
                 sb.cdp.wait_for_element_visible('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=None)
                 sb.cdp.click('//*[@id="DMVForm"]/div[1]/div/fieldset/div/div[1]/label', timeout=15)
+                sb.cdp.wait_for_element_visible('//*[@id="btn-dmv-submit-div"]/input', timeout=60000)
                 sb.cdp.sleep(0.5)
                 sb.cdp.click('//*[@id="btn-dmv-submit-div"]/input')
                 sb.cdp.sleep(2)
@@ -134,15 +136,29 @@ class PleadAndPayScraperSB:
 
                 print(f"   • Email: {self.email}")
                 sb.cdp.type('//*[@id="sEmailAddress"]', self.email)
-                sb.cdp.sleep(1)
+                sb.cdp.sleep(0.2)
+                # can we add delay in typing?
+
                 sb.cdp.type('//*[@id="sEmailAddress2"]', self.email)
-                sb.cdp.sleep(1)
+                sb.cdp.sleep(0.2)
 
                 # Submit form
                 print("🖱️ Submitting form (CDP Mode)...")
+                # sb.cdp.click_if_visible('//*[@id="submitBtn"]', timeout=None)
+                sb.cdp.scroll_to_bottom()
+                # sb.cdp.scroll_into_view('//*[@id="submitBtn"]')
                 sb.cdp.wait_for_element_visible('//*[@id="submitBtn"]', timeout=None)
-                sb.cdp.scroll_into_view('//*[@id="submitBtn"]')
-                sb.cdp.click("#submitBtn")
+                try:
+                    sb.cdp.gui_click_element('//*[@id="submitBtn"]', timeout=None)
+                except Exception:
+                    try:
+                        sb.cdp.press_keys('\t', timeout=None)
+                    except Exception:
+                        try:
+                            sb.cdp.click_if_visible('//*[@id="submitBtn"]', timeout=None)
+                        except Exception as e:
+                            sb.cdp.click("#submitBtn")
+
                 sb.cdp.sleep(3)
                 self._reload_again_and_again(sb)
 
@@ -157,7 +173,16 @@ class PleadAndPayScraperSB:
                 print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
                 sb.cdp.sleep(2)
                 sb.cdp.scroll_into_view('//*[@id="Continue"]')
-                sb.cdp.click('//*[@id="Continue"]')
+                try:
+                    sb.cdp.gui_click_element('//*[@id="Continue"]', timeout=None)
+                except Exception:
+                    try:
+                        sb.cdp.press_keys('\t', timeout=None)
+                    except Exception:
+                        try:
+                            sb.cdp.click_if_visible('//*[@id="Continue"]', timeout=None)
+                        except Exception as e:
+                            sb.cdp.click("#Continue")
                 sb.cdp.sleep(3)
                 print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
