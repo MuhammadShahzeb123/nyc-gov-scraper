@@ -86,6 +86,9 @@ class NYCDMVWebSummonsScraper:
         if "ERR" in sb.cdp.get_page_source():
             sb.cdp.reload_page()
             time.sleep(2)
+            if "ERR" in sb.cdp.get_page_source() or "" in sb.cdp.get_page_source():
+                sb.cdp.reload_page()
+                time.sleep(2)
         if "ERR" in sb.cdp.get_page_source():
             self.reload_page_again_and_again(sb)
 
@@ -109,48 +112,56 @@ class NYCDMVWebSummonsScraper:
             # Simple wait
             time.sleep(3)
 
-            # Click the first submit buttonc
+            # Click the first submit button
             print("🖱️ Clicking first submit button...")
-            sb.cdp.wait_for_element_visible('//*[@id="submit"]', timeout=60000)
-            sb.cdp.click('//*[@id="submit"]')
+            try:
+                sb.cdp.wait_for_element_visible('//*[@id="submit"]', timeout=60000)
+                sb.cdp.click('//*[@id="submit"]')
+            except Exception as e:
+                self.reload_page_again_and_again(sb)
             self.reload_page_again_and_again(sb)
             # Simple wait
             time.sleep(2)
 
             # Fill in the form details simply
             print("📝 Filling in form details...")
-            sb.cdp.wait_for_element_visible('//*[@id="sClientID"]', timeout=None)
-            print(f"   • Client ID: {self.client_id}")
-            sb.cdp.type('//*[@id="sClientID"]', self.client_id)
-
-            time.sleep(1)
-
-            print(f"   • Ticket Number: {self.ticket_id}")
-            sb.cdp.type('#sTicketNum', self.ticket_id)
-
-            time.sleep(1)
-
-            # Generate and fill email addresses
-            random_email = self.generate_random_gmail()
-            print(f"   • Email: {random_email}")
-
-            sb.cdp.type('#sEmailAddress', random_email)
-            time.sleep(1)
-
-            sb.cdp.type('#sEmailAddress2', random_email)
-            time.sleep(2)
-
-            # Click the final submit button
-            print("🖱️ Clicking final submit button...")
-            sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[2]/button')
-            sb.cdp.wait_for_element_visible('/html/body/div[1]/div[5]/form/div[2]/button', timeout=60000)
             try:
-                sb.cdp.click('//*[@id="submit order"]')
-            except Exception as e:
-                sb.cdp.click('/html/body/div[1]/div[5]/form/div[2]/button')  # Fallback for different button ID
-            time.sleep(5)
+                sb.cdp.wait_for_element_visible('//*[@id="sClientID"]', timeout=None)
+                print(f"   • Client ID: {self.client_id}")
+                sb.cdp.type('//*[@id="sClientID"]', self.client_id)
 
+                time.sleep(1)
+
+                print(f"   • Ticket Number: {self.ticket_id}")
+                sb.cdp.type('#sTicketNum', self.ticket_id)
+
+                time.sleep(1)
+
+                # Generate and fill email addresses
+                random_email = self.generate_random_gmail()
+                print(f"   • Email: {random_email}")
+
+                sb.cdp.type('#sEmailAddress', random_email)
+                time.sleep(1)
+
+                sb.cdp.type('#sEmailAddress2', random_email)
+                time.sleep(2)
+
+                # Click the final submit button
+                print("🖱️ Clicking final submit button...")
+                sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[2]/button')
+                sb.cdp.wait_for_element_visible('/html/body/div[1]/div[5]/form/div[2]/button', timeout=60000)
+                try:
+                    sb.cdp.click('//*[@id="submit order"]')
+                except Exception as e:
+                    sb.cdp.click('/html/body/div[1]/div[5]/form/div[2]/button')  # Fallback for different button ID
+                time.sleep(5)
+            except Exception as e:
+                print(f"Error filling form: {e}")
+                self.reload_page_again_and_again(sb)
             # can you add an if statement to check if the page has loaded correctly?
+            if "ERR" in sb.cdp.get_page_source():
+                self.reload_page_again_and_again(sb)
             self.reload_page_again_and_again(sb)
             # Scrape the data
             time.sleep(5)
