@@ -5,6 +5,7 @@ import os
 import json
 import random
 import time
+from proxy_config import proxy_rotator  # Import proxy rotation system
 
 class PleadAndPayScraperSB:
     def __init__(self, client_id=None, ticket_id=None, email=None):
@@ -63,10 +64,18 @@ class PleadAndPayScraperSB:
         print(f"🎫 Ticket ID: {self.ticket_id}")
         print(f"🆔 Client ID: {self.client_id}")
 
+        # Get proxy configuration for SeleniumBase with validation
+        proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+        if proxy_string:
+            print(f"🌐 Using rotating proxy: {proxy_string}")
+        else:
+            print("🌐 Using direct connection (no proxy)")
+
         # Use SeleniumBase with clean configuration
         with SB(
             uc=True,
             headless=False,
+            proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
             # Add extensions directory if it exists
             #extension_dir="extensions" if os.path.exists("extensions") else None
         ) as sb:

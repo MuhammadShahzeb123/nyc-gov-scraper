@@ -5,6 +5,7 @@ import json
 import random
 import time
 import datetime
+from proxy_config import proxy_rotator  # Import proxy rotation system
 
 class NYCDMVWebSummonsScraper:
     def __init__(self, client_id=None, ticket_id=None):
@@ -94,10 +95,18 @@ class NYCDMVWebSummonsScraper:
 
     def run_scraping_workflow(self):
         """Execute the complete scraping workflow - simple and clean"""
+        # Get proxy configuration for SeleniumBase with validation
+        proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+        if proxy_string:
+            print(f"🌐 Using rotating proxy: {proxy_string}")
+        else:
+            print("🌐 Using direct connection (no proxy)")
+
         # Simple Chrome setup - avoid conflicts with existing Chrome instances
         with SB(
             uc=True,
             headless=False,
+            proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
             # Remove extension_dir and user_data_dir to avoid conflicts
             # extension_dir="extensions",
             # user_data_dir="chrome_profile"

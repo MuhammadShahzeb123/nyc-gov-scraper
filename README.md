@@ -28,7 +28,14 @@ The scripts automate the process of retrieving details about traffic summons, pa
 - **Purpose:** Scrapes parking ticket information from the [NYC CityPay](https://a836-citypay.nyc.gov/citypay/Parking) portal.
 - **Input:** Reads violation numbers from `v_num.txt`.
 - **Output:** Saves the scraped ticket data as a JSON file in the `results` directory.
-- **Note:** This script includes advanced stealth mechanisms to mimic human behavior and avoid detection.
+- **Note:** This script includes advanced stealth mechanisms to mimic human behavior and avoid detection using undetected-chromedriver.
+
+### `citypay_nyc_sb.py`
+
+- **Purpose:** SeleniumBase CDP Mode version of the CityPay parking ticket scraper.
+- **Input:** Reads violation numbers from `v_num.txt`.
+- **Output:** Saves the scraped ticket data as a JSON file in the `results` directory.
+- **Note:** Uses SeleniumBase with CDP Mode for enhanced stealth and better performance. Includes the same advanced features as the original version.
 
 ### `plead_and_pay_sb_clean.py`
 
@@ -73,19 +80,21 @@ The scripts automate the process of retrieving details about traffic summons, pa
 To run the scrapers, execute the Python scripts directly from your terminal:
 
 - **DMV Web Summons Scraper:**
-
     ```bash
     python dmb_ny_sb.py
     ```
 
-- **CityPay Parking Ticket Scraper:**
-
+- **CityPay Parking Ticket Scraper (undetected-chromedriver):**
     ```bash
     python citypay_nyc.py
     ```
 
-- **Plead and Pay Scraper:**
+- **CityPay Parking Ticket Scraper (SeleniumBase CDP Mode):**
+    ```bash
+    python citypay_nyc_sb.py
+    ```
 
+- **Plead and Pay Scraper:**
     ```bash
     python plead_and_pay_sb_clean.py
     ```
