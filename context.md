@@ -5,6 +5,132 @@ This project contains Python scripts for scraping various NYC government website
 
 ## Recent Updates (July 2025)
 
+### Rate Limit Detection & Auto-Restart (July 15, 2025) - DMV & Plead&Pay ✅ COMPLETED
+**FEATURE IMPLEMENTED:** Automatic rate limit detection and browser restart with new proxy for `dmb_ny_sb.py` and `plead_and_pay_sb_clean.py`.
+
+**Problem:** When scraping government sites, "exceeded the maximum number" rate limit messages would appear, requiring manual intervention to restart with a new IP.
+
+**Solution Implemented:**
+✅ **Custom Rate Limit Exception** - Created `RateLimitExceededException` class for both files
+✅ **Automatic Detection** - Monitors page source for rate limit patterns including "exceeded the maximum number"
+✅ **Browser Auto-Restart** - Closes browser and reopens with fresh proxy when rate limit detected
+✅ **Proxy Tracking** - Tracks used proxies to avoid reusing failed IPs in same session
+✅ **Data Preservation** - Saves scraped data before restarting to prevent data loss
+✅ **Session Management** - Separate session functions for clean restarts
+✅ **Multiple Pattern Detection** - Detects various rate limit messages (10+ patterns)
+
+**Rate Limit Patterns Detected:**
+- "exceeded the maximum number" (primary target)
+- "too many requests"
+- "rate limit exceeded"
+- "maximum number of requests"
+- "access temporarily blocked"
+- "temporarily unavailable"
+- "service temporarily unavailable"
+- "maximum attempts exceeded"
+
+**Technical Implementation:**
+```python
+class RateLimitExceededException(Exception):
+    """Custom exception for rate limit detection"""
+
+def check_for_rate_limit(self, sb):
+    """Check page source for rate limit patterns"""
+    page_source = sb.cdp.get_page_source().lower()
+    for pattern in rate_limit_patterns:
+        if pattern in page_source:
+            raise RateLimitExceededException(...)
+
+def run_scraping_session(proxy_string, used_proxies):
+    """Single session with rate limit exception handling"""
+    try:
+        scraper.run_workflow()
+        return True, used_proxies, None  # Success
+    except RateLimitExceededException as e:
+        # Save data and signal need for restart
+        return False, used_proxies, failed_record
+
+def process_with_retry(client_id, ticket_id):
+    """Main loop with automatic proxy rotation on rate limit"""
+    for attempt in range(max_proxy_attempts):
+        proxy = get_unused_proxy(used_proxies)
+        success, used_proxies, failed_record = run_session(proxy)
+        if success: break  # Completed successfully
+        # Otherwise restart with new proxy
+```
+
+**Rate Limit Checks Added At:**
+- 🌐 **Initial page load** - After activating CDP mode
+- 🖱️ **After first submit** - After clicking initial submit button
+- 📝 **After form submission** - After submitting form data
+- ▶️ **After continue clicks** - After navigation buttons
+- 📊 **Before data extraction** - Before scraping results
+
+**Benefits:**
+- 🔄 **Zero Manual Intervention** - Automatically handles all rate limits
+- ⚡ **Fast Recovery** - 10-30 second waits between proxy switches
+- 💾 **No Data Loss** - All progress saved before each restart
+- 🌐 **Smart Proxy Usage** - Never reuses failed proxies in same session
+- 📊 **Session Tracking** - Clear statistics on proxy usage and attempts
+- 🛡️ **Multiple Safeguards** - 10+ rate limit patterns detected
+- 🚀 **Improved Success Rate** - Fresh IPs reduce chance of hitting limits
+
+### Advanced CAPTCHA Handling (July 15, 2025) - Proxy Rotation on CAPTCHA ✅ COMPLETED
+**FEATURE IMPLEMENTED:** Advanced CAPTCHA handling system that automatically restarts browser with new proxy when CAPTCHA is detected.
+
+**Problem:** When CAPTCHA is detected, the old system would just retry with the same proxy, which often led to more CAPTCHAs.
+
+**Solution Implemented:**
+✅ **Custom CAPTCHA Exception** - Created `CaptchaDetectedException` class
+✅ **Automatic Browser Restart** - Closes browser and reopens with new proxy when CAPTCHA detected
+✅ **Proxy Tracking** - Tracks used proxies to avoid reusing them in same session
+✅ **Data Preservation** - Saves scraped data before restarting to prevent data loss
+✅ **Intelligent Retry Logic** - Maximum 5 proxy attempts to prevent infinite loops
+✅ **Session Management** - Separate `run_scraping_session()` function for clean restarts
+
+**How It Works:**
+1. **CAPTCHA Detection** → `detect_captcha_error()` finds CAPTCHA on page
+2. **Exception Raised** → `handle_captcha_retry()` raises `CaptchaDetectedException`
+3. **Session Cleanup** → Current browser closes, data is saved
+4. **New Proxy Selected** → Gets unused proxy from rotation pool
+5. **Fresh Start** → New browser session with clean proxy
+6. **Continue Scraping** → Resumes from where it left off
+
+**Technical Implementation:**
+```python
+class CaptchaDetectedException(Exception):
+    """Custom exception for CAPTCHA detection"""
+
+def handle_captcha_retry(self, num: str) -> bool:
+    """Raises exception to trigger browser restart with new proxy"""
+    raise CaptchaDetectedException(num, f"CAPTCHA detected for violation {num}")
+
+def run_scraping_session(proxy_string, used_proxies):
+    """Single session with CAPTCHA exception handling"""
+    try:
+        scraper.run_scraping_loop()
+        return True, used_proxies, None  # Success
+    except CaptchaDetectedException as e:
+        # Save data and signal need for restart
+        return False, used_proxies, e.violation_number
+
+def main():
+    """Main loop with automatic proxy rotation on CAPTCHA"""
+    for attempt in range(max_proxy_attempts):
+        proxy = get_unused_proxy(used_proxies)
+        success, used_proxies, failed_violation = run_scraping_session(proxy)
+        if success: break  # Completed successfully
+        # Otherwise restart with new proxy
+```
+
+**Benefits:**
+- 🔄 **No Manual Intervention** - Automatically handles CAPTCHAs
+- 💾 **Zero Data Loss** - Saves progress before each restart
+- 🌐 **Smart Proxy Usage** - Never reuses failed proxies
+- ⚡ **Fast Recovery** - Quick restart with fresh IP address
+- 📊 **Session Tracking** - Clear statistics on proxy usage
+- 🛡️ **Infinite Loop Protection** - Maximum attempt limits
+
 ### Critical Fix (July 15, 2025) - CitPay NYC Proxy Configuration ✅ COMPLETED
 **ISSUE RESOLVED:** Fixed `citypay_nyc_sb.py` proxy authentication that wasn't working due to conflicting SeleniumBase parameters.
 

@@ -14,6 +14,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from stealth_config import *  # Contains USER_AGENTS, STEALTH_SCRIPTS, and behavior configs
 from proxy_config import proxy_rotator  # Import proxy rotation system
 
+class CaptchaDetectedException(Exception):
+    """Custom exception raised when CAPTCHA is detected - triggers proxy change"""
+    def __init__(self, violation_number, message="CAPTCHA detected, need to restart with new proxy"):
+        self.violation_number = violation_number
+        self.message = message
+        super().__init__(self.message)
+
 class NYCParkingTicketScraper:
     def __init__(self, sb):
         """Initialize the scraper with SeleniumBase SB (CDP Mode)"""
@@ -221,11 +228,9 @@ class NYCParkingTicketScraper:
             return False
 
     def handle_captcha_retry(self, num: str) -> bool:
-        print(f"🤖 Captcha for {num}, taking break and retrying...")
-        self.take_random_break()
-        self.return_to_base_url()
-        self.random_delay(3, 8)
-        return self.search_violation_number_internal(num, is_retry=True)
+        """Handle CAPTCHA detection by raising exception to trigger browser restart with new proxy"""
+        print(f"🤖 CAPTCHA detected for {num} - Raising exception to restart with new proxy...")
+        raise CaptchaDetectedException(num, f"CAPTCHA detected for violation {num}, restarting with new proxy")
 
     def search_violation_number_internal(self, num: str, is_retry=False) -> bool:
         try:
@@ -991,15 +996,14 @@ class NYCParkingTicketScraper:
             print(f"Cleanup error: {e}")
 
 
-def main():
-    print("=== NYC Parking Ticket Scraper - SeleniumBase CDP Mode Edition ===")
-    os.makedirs("results", exist_ok=True)
-    os.makedirs("backup", exist_ok=True)
+def run_scraping_session(proxy_string, used_proxies=None):
+    """Run a single scraping session with the given proxy"""
+    if used_proxies is None:
+        used_proxies = set()
 
-    # Get proxy configuration for SeleniumBase with validation
-    proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
     if proxy_string:
         print(f"🌐 Using rotating proxy: {proxy_string}")
+        used_proxies.add(proxy_string)
     else:
         print("🌐 Using direct connection (no proxy)")
 
@@ -1013,18 +1017,85 @@ def main():
         scraper = NYCParkingTicketScraper(sb)
         try:
             scraper.run_scraping_loop()
+            return True, used_proxies, None  # Success
+        except CaptchaDetectedException as e:
+            print(f"🤖 CAPTCHA detected: {e.message}")
+            # Save any data collected before CAPTCHA
+            if scraper.scraped_data:
+                emergency = f"captcha_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_data_to_json(emergency)
+                print(f"💾 Saved data before CAPTCHA restart: {emergency}")
+            return False, used_proxies, e.violation_number  # CAPTCHA detected, need restart
         except KeyboardInterrupt:
             print("Interrupted by user")
             if scraper.scraped_data:
                 emergency = f"emergency_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 scraper.save_data_to_json(emergency)
+            return True, used_proxies, None  # User interrupted, don't restart
         except Exception as e:
             print(f"Unexpected error: {e}")
             if scraper.scraped_data:
-                emergency = f"emergency_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                emergency = f"error_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 scraper.save_data_to_json(emergency)
+            return True, used_proxies, None  # Other error, don't restart
         finally:
             scraper.close()
+
+def main():
+    print("=== NYC Parking Ticket Scraper - SeleniumBase CDP Mode Edition ===")
+    print("🔄 Enhanced with CAPTCHA-triggered proxy rotation")
+    os.makedirs("results", exist_ok=True)
+    os.makedirs("backup", exist_ok=True)
+
+    used_proxies = set()
+    max_proxy_attempts = 5  # Maximum number of different proxies to try
+    current_attempt = 0
+    success = False  # Initialize success variable
+
+    while current_attempt < max_proxy_attempts:
+        current_attempt += 1
+        print(f"\n🚀 Starting scraping session #{current_attempt}")
+
+        # Get a new proxy that hasn't been used yet
+        proxy_string = None
+        attempts_to_get_new_proxy = 0
+        max_attempts_for_new_proxy = 10  # Prevent infinite loop
+
+        while attempts_to_get_new_proxy < max_attempts_for_new_proxy:
+            proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+
+            if proxy_string is None or proxy_string not in used_proxies:
+                break  # Found unused proxy or no proxy
+
+            attempts_to_get_new_proxy += 1
+            print(f"   🔄 Proxy already used, getting another... (attempt {attempts_to_get_new_proxy})")
+
+        if attempts_to_get_new_proxy >= max_attempts_for_new_proxy:
+            print("⚠️ Warning: Could not find unused proxy, using random proxy anyway")
+            proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+
+        # Run scraping session
+        success, used_proxies, failed_violation = run_scraping_session(proxy_string, used_proxies)
+
+        if success:
+            print("✅ Scraping session completed successfully!")
+            break
+        else:
+            print(f"🤖 CAPTCHA detected for violation: {failed_violation}")
+            print(f"📊 Used proxies so far: {len(used_proxies)}")
+
+            if current_attempt < max_proxy_attempts:
+                wait_time = random.uniform(10, 30)  # Wait 10-30 seconds between restarts
+                print(f"⏳ Waiting {wait_time:.1f} seconds before restarting with new proxy...")
+                time.sleep(wait_time)
+            else:
+                print("❌ Maximum proxy attempts reached. Consider running again later.")
+                break
+
+    print(f"\n📊 Final Statistics:")
+    print(f"   • Total proxy attempts: {current_attempt}")
+    print(f"   • Proxies used: {len(used_proxies)}")
+    print(f"   • Session result: {'Success' if success else 'CAPTCHA limit reached'}")
 
 if __name__ == "__main__":
     main()

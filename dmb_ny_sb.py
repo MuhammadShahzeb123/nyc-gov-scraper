@@ -7,6 +7,14 @@ import time
 import datetime
 from proxy_config import proxy_rotator  # Import proxy rotation system
 
+class RateLimitExceededException(Exception):
+    """Custom exception raised when rate limit is detected - triggers proxy change"""
+    def __init__(self, client_id, ticket_id, message="Rate limit exceeded, need to restart with new proxy"):
+        self.client_id = client_id
+        self.ticket_id = ticket_id
+        self.message = message
+        super().__init__(self.message)
+
 class NYCDMVWebSummonsScraper:
     def __init__(self, client_id=None, ticket_id=None):
         """Initialize the scraper with data storage"""
@@ -93,6 +101,44 @@ class NYCDMVWebSummonsScraper:
         if "ERR" in sb.cdp.get_page_source():
             self.reload_page_again_and_again(sb)
 
+    def check_for_rate_limit(self, sb):
+        """Check if the page source contains rate limit messages and raise exception if found"""
+        try:
+            page_source = sb.cdp.get_page_source().lower()
+
+            # Rate limit patterns to check for
+            rate_limit_patterns = [
+                "exceeded the maximum number",
+                "too many requests",
+                "rate limit exceeded",
+                "maximum number of requests",
+                "request limit exceeded",
+                "too many attempts",
+                "access temporarily blocked",
+                "temporarily unavailable",
+                "service temporarily unavailable",
+                "maximum attempts exceeded"
+            ]
+
+            # Check for any of these patterns
+            for pattern in rate_limit_patterns:
+                if pattern in page_source:
+                    print(f"🚫 RATE LIMIT DETECTED: Found pattern '{pattern}'")
+                    raise RateLimitExceededException(
+                        self.client_id,
+                        self.ticket_id,
+                        f"Rate limit detected: {pattern}"
+                    )
+
+            return False  # No rate limit detected
+
+        except RateLimitExceededException:
+            # Re-raise the rate limit exception
+            raise
+        except Exception as e:
+            print(f"⚠️ Error checking for rate limit: {type(e).__name__}")
+            return False
+
     def run_scraping_workflow(self):
         """Execute the complete scraping workflow - simple and clean"""
         # Get proxy configuration for SeleniumBase with validation
@@ -118,7 +164,8 @@ class NYCDMVWebSummonsScraper:
             print("📋 Opening NYC DMV Web Summons page...")
             sb.activate_cdp_mode("https://process.dmv.ny.gov/WebSummons/")
             self.reload_page_again_and_again(sb)
-            # Simple wait
+            # Check for rate limit after initial page load
+            self.check_for_rate_limit(sb)
             time.sleep(3)
 
             # Click the first submit button
@@ -129,7 +176,8 @@ class NYCDMVWebSummonsScraper:
             except Exception as e:
                 self.reload_page_again_and_again(sb)
             self.reload_page_again_and_again(sb)
-            # Simple wait
+            # Check for rate limit after first submit
+            self.check_for_rate_limit(sb)
             time.sleep(2)
 
             # Fill in the form details simply
@@ -165,6 +213,8 @@ class NYCDMVWebSummonsScraper:
                 except Exception as e:
                     sb.cdp.click('/html/body/div[1]/div[5]/form/div[2]/button')  # Fallback for different button ID
                 time.sleep(5)
+                # Check for rate limit after final submit
+                self.check_for_rate_limit(sb)
             except Exception as e:
                 print(f"Error filling form: {e}")
                 self.reload_page_again_and_again(sb)
@@ -172,6 +222,8 @@ class NYCDMVWebSummonsScraper:
             if "ERR" in sb.cdp.get_page_source():
                 self.reload_page_again_and_again(sb)
             self.reload_page_again_and_again(sb)
+            # Check for rate limit before scraping data
+            self.check_for_rate_limit(sb)
             # Scrape the data
             time.sleep(5)
             self.scrape_tickets_with_regex(sb)
@@ -179,7 +231,93 @@ class NYCDMVWebSummonsScraper:
 
             print("✅ Scraping workflow completed successfully!")
 
+def run_dmv_scraping_session(client_id, ticket_id, proxy_string, used_proxies=None):
+    """Run a single DMV scraping session with the given proxy"""
+    if used_proxies is None:
+        used_proxies = set()
+
+    if proxy_string:
+        print(f"🌐 Using rotating proxy: {proxy_string}")
+        used_proxies.add(proxy_string)
+    else:
+        print("🌐 Using direct connection (no proxy)")
+
+    with SB(
+        uc=True,
+        headless=False,
+        proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
+    ) as sb:
+        scraper = NYCDMVWebSummonsScraper(client_id=client_id, ticket_id=ticket_id)
+        try:
+            scraper.run_scraping_workflow()
+            return True, used_proxies, None  # Success
+        except RateLimitExceededException as e:
+            print(f"🚫 RATE LIMIT detected: {e.message}")
+            # Save any data collected before rate limit
+            if scraper.scraped_data:
+                emergency = f"rate_limit_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results(emergency)
+                print(f"💾 Saved data before rate limit restart: {emergency}")
+            return False, used_proxies, (client_id, ticket_id)  # Rate limit detected, need restart
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+            if scraper.scraped_data:
+                emergency = f"emergency_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results(emergency)
+            return True, used_proxies, None  # User interrupted, don't restart
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            if scraper.scraped_data:
+                emergency = f"error_backup_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results(emergency)
+            return True, used_proxies, None  # Other error, don't restart
+
+def process_single_record_with_retry(client_id, ticket_id):
+    """Process a single record with automatic proxy retry on rate limit"""
+    used_proxies = set()
+    max_proxy_attempts = 5  # Maximum number of different proxies to try
+    current_attempt = 0
+
+    while current_attempt < max_proxy_attempts:
+        current_attempt += 1
+        print(f"\n🚀 DMV Session #{current_attempt} for Client ID={client_id}, Ticket ID={ticket_id}")
+
+        # Get a new proxy that hasn't been used yet
+        proxy_string = None
+        attempts_to_get_new_proxy = 0
+        max_attempts_for_new_proxy = 10  # Prevent infinite loop
+
+        while attempts_to_get_new_proxy < max_attempts_for_new_proxy:
+            proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+
+            if proxy_string is None or proxy_string not in used_proxies:
+                break  # Found unused proxy or no proxy
+
+            attempts_to_get_new_proxy += 1
+            print(f"   🔄 Proxy already used, getting another... (attempt {attempts_to_get_new_proxy})")
+
+        # Run scraping session
+        success, used_proxies, failed_record = run_dmv_scraping_session(client_id, ticket_id, proxy_string, used_proxies)
+
+        if success:
+            print(f"✅ DMV scraping completed successfully for Client ID={client_id}, Ticket ID={ticket_id}")
+            break
+        else:
+            print(f"🚫 Rate limit detected for Client ID={client_id}, Ticket ID={ticket_id}")
+            print(f"📊 Used proxies so far: {len(used_proxies)}")
+
+            if current_attempt < max_proxy_attempts:
+                wait_time = random.uniform(10, 30)  # Wait 10-30 seconds between restarts
+                print(f"⏳ Waiting {wait_time:.1f} seconds before restarting with new proxy...")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ Maximum proxy attempts reached for Client ID={client_id}, Ticket ID={ticket_id}")
+                break
+
 if __name__ == "__main__":
+    print("=== NYC DMV Web Summons Scraper ===")
+    print("🔄 Enhanced with Rate Limit Detection and Proxy Rotation")
+
     # Read all rows from CSV (skip header)
     with open('l_and_v_list.csv', 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -191,5 +329,5 @@ if __name__ == "__main__":
             ticket_id, client_id = row.strip().split(',')
             print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
-            scraper = NYCDMVWebSummonsScraper(client_id=client_id, ticket_id=ticket_id)
-            scraper.run_scraping_workflow()
+            # Process with automatic proxy retry on rate limit
+            process_single_record_with_retry(client_id, ticket_id)

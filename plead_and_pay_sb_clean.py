@@ -7,6 +7,15 @@ import random
 import time
 from proxy_config import proxy_rotator  # Import proxy rotation system
 
+class RateLimitExceededException(Exception):
+    """Custom exception raised when rate limit is detected - triggers proxy change"""
+    def __init__(self, client_id, ticket_id, email, message="Rate limit exceeded, need to restart with new proxy"):
+        self.client_id = client_id
+        self.ticket_id = ticket_id
+        self.email = email
+        self.message = message
+        super().__init__(self.message)
+
 class PleadAndPayScraperSB:
     def __init__(self, client_id=None, ticket_id=None, email=None):
         """Initialize the scraper with data storage"""
@@ -28,6 +37,45 @@ class PleadAndPayScraperSB:
         r = random.randint(100, 1000)
 
         return f"{random.choice(japanese_names)}{r}@{random.choice(sites)}"
+
+    def check_for_rate_limit(self, sb):
+        """Check if the page source contains rate limit messages and raise exception if found"""
+        try:
+            page_source = sb.cdp.get_page_source().lower()
+
+            # Rate limit patterns to check for
+            rate_limit_patterns = [
+                "exceeded the maximum number",
+                "too many requests",
+                "rate limit exceeded",
+                "maximum number of requests",
+                "request limit exceeded",
+                "too many attempts",
+                "access temporarily blocked",
+                "temporarily unavailable",
+                "service temporarily unavailable",
+                "maximum attempts exceeded"
+            ]
+
+            # Check for any of these patterns
+            for pattern in rate_limit_patterns:
+                if pattern in page_source:
+                    print(f"🚫 RATE LIMIT DETECTED: Found pattern '{pattern}'")
+                    raise RateLimitExceededException(
+                        self.client_id,
+                        self.ticket_id,
+                        self.email,
+                        f"Rate limit detected: {pattern}"
+                    )
+
+            return False  # No rate limit detected
+
+        except RateLimitExceededException:
+            # Re-raise the rate limit exception
+            raise
+        except Exception as e:
+            print(f"⚠️ Error checking for rate limit: {type(e).__name__}")
+            return False
 
 
     def save_results_to_json(self, filename=None):
@@ -118,6 +166,8 @@ class PleadAndPayScraperSB:
                 # self.throttle(sb)
                 sb.cdp.sleep(10)
                 self._reload_again_and_again(sb)
+                # Check for rate limit after initial page load
+                self.check_for_rate_limit(sb)
                 print(f"🔗 Current URL: {sb.cdp.get_current_url()}")
 
                 # Step 2: Initial Page - Click radio button and submit
@@ -128,6 +178,8 @@ class PleadAndPayScraperSB:
                 sb.cdp.sleep(0.5)
                 sb.cdp.click('//*[@id="btn-dmv-submit-div"]/input')
                 sb.cdp.sleep(2)
+                # Check for rate limit after first submit
+                self.check_for_rate_limit(sb)
                 print(f"🔗 After initial submit: {sb.cdp.get_current_url()}")
 
                 # Check if we're back at base URL
@@ -184,6 +236,8 @@ class PleadAndPayScraperSB:
 
                 sb.cdp.sleep(3)
                 self._reload_again_and_again(sb)
+                # Check for rate limit after form submit
+                self.check_for_rate_limit(sb)
 
                 # Check if we're back at base URL
                 if is_at_base_url():
@@ -198,6 +252,8 @@ class PleadAndPayScraperSB:
                 sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[3]/input[2]')
                 sb.cdp.click("/html/body/div[1]/div[5]/form/div[3]/input[2]")
                 sb.cdp.sleep(3)
+                # Check for rate limit after continue click
+                self.check_for_rate_limit(sb)
                 print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
                 # Check if we're back at base URL
@@ -447,8 +503,98 @@ class PleadAndPayScraperSB:
 
         print("="*60 + "\n")
 
+def run_plead_pay_session(client_id, ticket_id, email, proxy_string, used_proxies=None):
+    """Run a single plead and pay session with the given proxy"""
+    if used_proxies is None:
+        used_proxies = set()
+
+    if proxy_string:
+        print(f"🌐 Using rotating proxy: {proxy_string}")
+        used_proxies.add(proxy_string)
+    else:
+        print("🌐 Using direct connection (no proxy)")
+
+    with SB(
+        uc=True,
+        headless=False,
+        proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
+    ) as sb:
+        scraper = PleadAndPayScraperSB(client_id=client_id, ticket_id=ticket_id, email=email)
+        try:
+            scraper._run_automation_steps(sb)
+            return True, used_proxies, None  # Success
+        except RateLimitExceededException as e:
+            print(f"🚫 RATE LIMIT detected: {e.message}")
+            # Save any data collected before rate limit
+            if scraper.scraped_data:
+                emergency = f"rate_limit_backup_{time.strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results_to_json(emergency)
+                print(f"💾 Saved data before rate limit restart: {emergency}")
+            return False, used_proxies, (client_id, ticket_id, email)  # Rate limit detected, need restart
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+            if scraper.scraped_data:
+                emergency = f"emergency_{time.strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results_to_json(emergency)
+            return True, used_proxies, None  # User interrupted, don't restart
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            if scraper.scraped_data:
+                emergency = f"error_backup_{time.strftime('%Y%m%d_%H%M%S')}.json"
+                scraper.save_results_to_json(emergency)
+            return True, used_proxies, None  # Other error, don't restart
+
+def process_single_record_with_retry(client_id, ticket_id):
+    """Process a single record with automatic proxy retry on rate limit"""
+    used_proxies = set()
+    max_proxy_attempts = 5  # Maximum number of different proxies to try
+    current_attempt = 0
+
+    # Generate random email
+    scraper_temp = PleadAndPayScraperSB(client_id=client_id, ticket_id=ticket_id)
+    email = scraper_temp.generate_random_email()
+
+    while current_attempt < max_proxy_attempts:
+        current_attempt += 1
+        print(f"\n🚀 Plead & Pay Session #{current_attempt} for Client ID={client_id}, Ticket ID={ticket_id}")
+
+        # Get a new proxy that hasn't been used yet
+        proxy_string = None
+        attempts_to_get_new_proxy = 0
+        max_attempts_for_new_proxy = 10  # Prevent infinite loop
+
+        while attempts_to_get_new_proxy < max_attempts_for_new_proxy:
+            proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
+
+            if proxy_string is None or proxy_string not in used_proxies:
+                break  # Found unused proxy or no proxy
+
+            attempts_to_get_new_proxy += 1
+            print(f"   🔄 Proxy already used, getting another... (attempt {attempts_to_get_new_proxy})")
+
+        # Run scraping session
+        success, used_proxies, failed_record = run_plead_pay_session(client_id, ticket_id, email, proxy_string, used_proxies)
+
+        if success:
+            print(f"✅ Plead & Pay scraping completed successfully for Client ID={client_id}, Ticket ID={ticket_id}")
+            break
+        else:
+            print(f"🚫 Rate limit detected for Client ID={client_id}, Ticket ID={ticket_id}")
+            print(f"📊 Used proxies so far: {len(used_proxies)}")
+
+            if current_attempt < max_proxy_attempts:
+                wait_time = random.uniform(10, 30)  # Wait 10-30 seconds between restarts
+                print(f"⏳ Waiting {wait_time:.1f} seconds before restarting with new proxy...")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ Maximum proxy attempts reached for Client ID={client_id}, Ticket ID={ticket_id}")
+                break
+
 
 if __name__ == "__main__":
+    print("=== Plead and Pay Scraper ===")
+    print("🔄 Enhanced with Rate Limit Detection and Proxy Rotation")
+
     # Read all rows from CSV (skip header)
     with open('l_and_v_list.csv', 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -460,12 +606,5 @@ if __name__ == "__main__":
             ticket_id, client_id = row.strip().split(',')
             print(f"\n🔄 Processing Client ID={client_id}, Ticket ID={ticket_id}")
 
-            # Create scraper instance
-            scraper = PleadAndPayScraperSB(client_id=client_id, ticket_id=ticket_id)
-
-            # Generate random email if not provided
-            if not scraper.email:
-                scraper.email = scraper.generate_random_email()
-
-            # Run the workflow for this row
-            scraper.run_plead_and_pay_workflow()
+            # Process with automatic proxy retry on rate limit
+            process_single_record_with_retry(client_id, ticket_id)
