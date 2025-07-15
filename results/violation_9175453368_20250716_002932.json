@@ -1,0 +1,53 @@
+{
+  "violation_number": "9175453368",
+  "timestamp": "20250716_002932",
+  "tickets_found": 3,
+  "tickets": [
+    {
+      "search_violation_number": "9175453368",
+      "extracted_at": "2025-07-16T00:29:29.171583",
+      "ticket_id": "2025580543300",
+      "violation_number": "9175453368",
+      "license_plate": "LFZ3221 NY PAS",
+      "violation_type": "14-No Standing",
+      "date": "01/11/2025",
+      "liability_amount": "$178.09",
+      "paid_amount": "$0.00",
+      "amount_due": "$178.09",
+      "payment_amount": "178.09",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VDFSRk0wNVVVVEZOZWsweVQwRTlQUT09",
+      "status": ""
+    },
+    {
+      "search_violation_number": "9175453368",
+      "extracted_at": "2025-07-16T00:29:29.567867",
+      "ticket_id": "2025580543301",
+      "violation_number": "9175453370",
+      "license_plate": "LFZ3221 NY PAS",
+      "violation_type": "72A-Insp Stkr Counterfeit",
+      "date": "01/11/2025",
+      "liability_amount": "$127.25",
+      "paid_amount": "$0.00",
+      "amount_due": "$127.25",
+      "payment_amount": "127.25",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VDFSRk0wNVVVVEZOZWswelRVRTlQUT09",
+      "status": ""
+    },
+    {
+      "search_violation_number": "9175453368",
+      "extracted_at": "2025-07-16T00:29:29.895515",
+      "ticket_id": "2025584758893",
+      "violation_number": "1497039927",
+      "license_plate": "LFZ3221 NY PAS",
+      "violation_type": "NO STANDING-DAY/TIME LIMITS",
+      "date": "02/02/2025",
+      "liability_amount": "$177.19",
+      "paid_amount": "$0.00",
+      "amount_due": "$177.19",
+      "payment_amount": "177.19",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VFZSUk5VNTZRWHBQVkd0NVRuYzlQUT09",
+      "status": ""
+    }
+  ],
+  "status": "success"
+}

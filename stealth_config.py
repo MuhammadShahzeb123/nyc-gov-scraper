@@ -6,12 +6,12 @@ Advanced stealth configuration to maximize undetection and avoid captchas
 # Mouse movement settings
 MOUSE_MOVEMENTS = {
     'enabled': True,
-    'min_movements': 2,
-    'max_movements': 5,
-    'max_offset_x': 100,
-    'max_offset_y': 50,
-    'movement_delay_min': 0.1,
-    'movement_delay_max': 0.3
+    'min_movements': 1,
+    'max_movements': 2,        # Reduced max movements
+    'max_offset_x': 25,
+    'max_offset_y': 25,
+    'movement_delay_min': 0.05, # Shorter delay
+    'movement_delay_max': 0.15  # Shorter delay
 }
 
 # Typing behavior settings
@@ -145,9 +145,9 @@ STEALTH_SCRIPTS = [
 # Scrolling behavior
 SCROLLING = {
     'enabled': True,
-    'min_scroll': 100,
-    'max_scroll': 500,
-    'scroll_back_probability': 0.3,  # 30% chance to scroll back
-    'scroll_delay_min': 0.5,
-    'scroll_delay_max': 1.0
+    'min_scroll': 50,
+    'max_scroll': 150,
+    'scroll_delay_min': 0.1,    # Significantly shorter delay
+    'scroll_delay_max': 0.25,   # Significantly shorter delay
+    'scroll_back_probability': 0.15 # Reduced probability
 }

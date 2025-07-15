@@ -414,15 +414,144 @@ Fixed critical connection issues in `citypay_nyc_sb.py` where the script was mix
    - Added proper variable initialization to prevent unbound variables
    - Enhanced exception handling throughout
 
-## Key Features Maintained:
-- ✅ Exact regex patterns for data extraction
-- ✅ Identical saving methods and file structures
-- ✅ Same XPATHs for all elements
-- ✅ CDP Mode implementation for SeleniumBase
-- ✅ Advanced stealth mechanisms
-- ✅ Human-like behavior simulation
-- ✅ Comprehensive error handling
-- ✅ Immediate data saving to prevent loss
+### Flagged as Deleted Check (July 15, 2025) - Skip Extraction ✅ COMPLETED
+**FEATURE IMPLEMENTED:** Automatic detection of "flagged as deleted" tickets to skip extraction and move to next violation.
+
+**Problem:** Some tickets on the NYC parking violation site show "flagged as deleted" status, but the script would still attempt to extract data from them, wasting time and potentially causing errors.
+
+**Solution Implemented:**
+✅ **Page Source Check** - Added check for "flagged as deleted" text in page source before data extraction
+✅ **Early Skip Logic** - Returns empty ticket list immediately when deletion flag detected
+✅ **Case-Insensitive Detection** - Uses `.lower()` to catch any case variations
+✅ **Clean Logging** - Clear notification when skipping deleted tickets
+✅ **Fixed Missing Method** - Removed reference to non-existent `parse_from_page_source` method
+
+**Technical Implementation:**
+```python
+def extract_ticket_data(self, num: str) -> list:
+    # ... get page source ...
+
+    # Check if ticket is flagged as deleted - skip extraction if found
+    if 'flagged as deleted' in page_source.lower():
+        print(f"🚫 Ticket {num} is flagged as deleted - skipping extraction")
+        return tickets  # Return empty list and move to next violation
+
+    # ... continue with normal extraction ...
+```
+
+**Benefits:**
+- ⚡ **Faster Processing** - Skips unnecessary extraction attempts on deleted tickets
+- 📊 **Clean Data** - Prevents empty/error records for flagged tickets
+- 🔍 **Clear Feedback** - Logs when tickets are skipped due to deletion flag
+- 🛡️ **Error Prevention** - Avoids potential parsing errors on flagged content
+- 🚀 **Improved Efficiency** - Focus processing time on valid tickets only
+
+### Enhanced Search with Fallback & Expanded Format Support (July 15, 2025) ✅ COMPLETED
+
+**FEATURE IMPLEMENTED:** Advanced fallback mechanism for when violation input field is not visible, with support for expanded ticket format parsing.
+
+**Problem:** Sometimes the violation input field (`//*[@id="violation-number"]`) is not visible, causing the error "Element was not visible!" This happens when the page shows tickets in an expanded format that requires clicking an expand button to reveal all tickets.
+
+**Solution Implemented:**
+✅ **Fallback Search Mechanism** - When standard search fails, automatically tries to click expand buttons to reveal hidden tickets
+
+✅ **Multiple Expand Button Selectors** - Tries various XPath selectors to find and click the expand button:
+- `/html/body/div[1]/main/div/div[3]/div/table/tbody/tr[1]/td/div[3]/div[1]/div`
+- `//div[@class="block-cell"]//div[@class="ico-wrapper"]`
+- `//i[@class="ico ico-caret-right"]`
+- `//div[contains(@class, "block-wrapper")]//div[contains(@class, "block-cell")]`
+- `//div[contains(text(), "Judgment Violations")]//div[@class="ico-wrapper"]`
+
+✅ **Expanded Format Parser** - New parsing logic specifically for `tbody.parking-results` format that shows multiple tickets
+
+✅ **Dual Format Support** - Automatically detects and handles both:
+- Standard format: `<tr id="ticket-">` rows
+- Expanded format: `tbody class="parking-results"` with hidden rows
+
+✅ **Enhanced Ticket Data** - Expanded format includes additional fields:
+- `status` field (paid_in_full, payment_in_process, etc.)
+- Better detection of paid tickets and payment status
+
+**Technical Implementation:**
+```python
+def search_violation_number_internal(self, num: str, is_retry=False) -> bool:
+    try:
+        # Try standard search first
+        self.sb.cdp.wait_for_element_visible('//*[@id="violation-number"]', timeout=30)
+        # ... standard search logic ...
+
+    except Exception as search_error:
+        print("🔄 Attempting fallback method - looking for expanded ticket view...")
+
+        # Fallback: Try to click expand buttons
+        expand_selectors = [
+            '/html/body/div[1]/main/div/div[3]/div/table/tbody/tr[1]/td/div[3]/div[1]/div',
+            '//div[@class="block-cell"]//div[@class="ico-wrapper"]',
+            # ... more selectors ...
+        ]
+
+        for selector in expand_selectors:
+            try:
+                self.sb.cdp.click(selector)
+                break
+            except:
+                continue
+
+def extract_ticket_data(self, num: str) -> list:
+    # Check for expanded format first
+    if 'tbody class="parking-results"' in page_source:
+        tickets = self.parse_expanded_ticket_format(page_source, num)
+        if tickets:
+            return tickets
+
+    # Fall back to standard format
+    # ... standard parsing logic ...
+
+def parse_expanded_ticket_format(self, page_source: str, num: str) -> list:
+    # Parse tickets from tbody.parking-results format
+    # Handles hidden rows (style="display: none;")
+    # Extracts status information (paid, in_process, etc.)
+```
+
+**Benefits:**
+- 🔄 **Automatic Recovery** - No more "Element was not visible!" failures
+- 📊 **More Comprehensive Data** - Captures tickets in both display formats
+- 🎯 **Intelligent Detection** - Automatically determines which format to use
+- 📋 **Enhanced Status Info** - Tracks payment status and ticket availability
+- 🚀 **Improved Success Rate** - Handles edge cases that previously caused failures
+- 🔍 **Better Logging** - Clear feedback on which parsing method is being used
+
+### Network Idle Enhancement (July 16, 2025) - Improved Page Load Handling ✅ COMPLETED
+**FEATURE IMPLEMENTED:** Enhanced `try_click_search_filters_stealthily()` function to wait for network idle state before clicking search filters.
+
+**Problem:** The search filters function was being called while the page was still loading network resources, causing premature clicks and potential failures.
+
+**Solution Implemented:**
+✅ **Network Idle Detection** - Uses CDP `wait_for_network_idle()` to ensure page is fully loaded
+✅ **Intelligent Timeout** - 30-second timeout with 500ms network idle requirement
+✅ **Fallback Mechanism** - Falls back to traditional 3-second wait if network idle fails
+✅ **Better Timing** - Ensures all network activity has stopped before attempting clicks
+✅ **Improved Reliability** - Prevents clicks on elements that might still be loading
+
+**Technical Implementation:**
+```python
+def try_click_search_filters_stealthily(self):
+    print("⏳ Waiting for network idle state...")
+    try:
+        # Wait for no network activity for 500ms
+        self.sb.cdp.wait_for_network_idle(timeout=30, network_idle_time=0.5)
+        print("✅ Network is idle - page fully loaded")
+    except Exception as network_error:
+        print("🔄 Using fallback delay instead...")
+        time.sleep(3)  # Fallback to traditional wait
+```
+
+**Benefits:**
+- 🚀 **Improved Reliability** - Clicks only when page is truly ready
+- ⏱️ **Perfect Timing** - Waits for actual network completion, not arbitrary timeouts
+- 🔄 **Smart Fallback** - Traditional delays if network idle detection fails
+- 📊 **Better Success Rate** - Reduces failures caused by premature interactions
+- 🛡️ **Robust Error Handling** - Continues operation even if network detection fails
 
 ## Files in Project:
 - `citypay_nyc.py` - Original version using undetected-chromedriver
@@ -449,3 +578,62 @@ Both `citypay_nyc.py` and `citypay_nyc_sb.py` now use identical:
 - XPATHs for all elements
 - Error handling approaches
 - Human behavior simulation
+
+## CAPTCHA Detection Logic Simplification (July 16, 2025) ✅ COMPLETED
+
+**FEATURE UPDATED:** Simplified CAPTCHA detection logic in `citypay_nyc_sb.py` to use the exact intended detection method.
+
+**Problem:** The CAPTCHA detection was using complex pattern matching and proximity checks, but the requirement was much simpler.
+
+**Original Requirement:**
+- Wait for page to load after form submission
+- Get full page source content
+- Check if BOTH keywords "unable" AND "verify" are present
+- If both are found → CAPTCHA error detected
+
+**Previous Implementation Issues:**
+- Used multiple specific patterns like "unable to verify recaptcha", "verification failed", etc.
+- Had proximity checks (words within 100 characters of each other)
+- Overly complex logic that could miss simple cases
+
+**New Simplified Implementation:**
+✅ **Simple Keyword Check** - Only checks for presence of "unable" AND "verify"
+✅ **Page Source Analysis** - Gets full page content using CDP mode
+✅ **Clear Logging** - Shows exactly which keywords were found
+✅ **Proper Timing** - Called after `wait_for_results()` ensures page is loaded
+✅ **Binary Detection** - Either both keywords present (CAPTCHA) or not
+
+**Updated `detect_captcha_error()` Method:**
+```python
+def detect_captcha_error(self) -> bool:
+    """
+    Detect CAPTCHA error by checking if both 'unable' and 'verify' keywords
+    are present in the page source after form submission.
+    """
+    page_source = self.sb.cdp.get_page_source().lower()
+
+    has_unable = "unable" in page_source
+    has_verify = "verify" in page_source
+
+    # CAPTCHA error detected if BOTH keywords are present
+    if has_unable and has_verify:
+        print("🤖 CAPTCHA ERROR DETECTED: Both 'unable' and 'verify' keywords found")
+        return True
+    else:
+        print("✅ No CAPTCHA error detected - missing one or both keywords")
+        return False
+```
+
+**Flow Sequence:**
+1. 🖱️ **Form Submission** - Click search button with violation number
+2. ⏳ **Wait for Results** - `wait_for_results()` waits for page load
+3. 📄 **Get Page Source** - CDP retrieves full HTML content
+4. 🔍 **Keyword Detection** - Check for "unable" AND "verify"
+5. 🤖 **CAPTCHA Response** - If both found, trigger proxy rotation
+
+**Benefits:**
+- 🎯 **Exact Requirement Match** - Does exactly what was originally specified
+- 🚀 **Faster Detection** - No complex pattern matching overhead
+- 🔍 **Better Accuracy** - Won't miss simple CAPTCHA messages
+- 📊 **Clear Debugging** - Shows exactly which keywords found
+- 🛡️ **Reliable Logic** - Simple boolean check, less prone to errors

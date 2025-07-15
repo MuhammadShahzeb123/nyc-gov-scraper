@@ -1,0 +1,23 @@
+{
+  "violation_number": "4951854752",
+  "timestamp": "20250716_004418",
+  "tickets_found": 1,
+  "tickets": [
+    {
+      "search_violation_number": "4951854752",
+      "extracted_at": "2025-07-16T00:44:15.584775",
+      "ticket_id": "2025611245069",
+      "violation_number": "4951854752",
+      "license_plate": "DWN2248 NY PAS",
+      "violation_type": "PHTO SCHOOL ZN SPEED VIOLATION",
+      "date": "06/13/2025",
+      "liability_amount": "$50.00",
+      "paid_amount": "$0.00",
+      "amount_due": "$50.00",
+      "payment_amount": "50.00",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VGtSck1VMVVaekZPUkdNeFRXYzlQUT09",
+      "status": ""
+    }
+  ],
+  "status": "success"
+}

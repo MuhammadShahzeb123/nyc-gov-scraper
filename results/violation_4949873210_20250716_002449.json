@@ -1,0 +1,38 @@
+{
+  "violation_number": "4949873210",
+  "timestamp": "20250716_002449",
+  "tickets_found": 2,
+  "tickets": [
+    {
+      "search_violation_number": "4949873210",
+      "extracted_at": "2025-07-16T00:24:46.542093",
+      "ticket_id": "2025602650241",
+      "violation_number": "4949873210",
+      "license_plate": "JDW6388 NY PAS",
+      "violation_type": "PHTO SCHOOL ZN SPEED VIOLATION",
+      "date": "06/02/2025",
+      "liability_amount": "$75.00",
+      "paid_amount": "$0.00",
+      "amount_due": "$75.00",
+      "payment_amount": "75.00",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VGtSck1FOVVaek5OZWtsNFRVRTlQUT09",
+      "status": ""
+    },
+    {
+      "search_violation_number": "4949873210",
+      "extracted_at": "2025-07-16T00:24:46.877226",
+      "ticket_id": "2025610060387",
+      "violation_number": "4950644178",
+      "license_plate": "HVC6630 NY PAS",
+      "violation_type": "PHTO SCHOOL ZN SPEED VIOLATION",
+      "date": "06/07/2025",
+      "liability_amount": "$50.00",
+      "paid_amount": "$0.00",
+      "amount_due": "$50.00",
+      "payment_amount": "50.00",
+      "view_ticket_link": "http://nycserv.nyc.gov/NYCServWeb/ShowImage?searchID=VGtSck1VMUVXVEJPUkVVelQwRTlQUT09",
+      "status": ""
+    }
+  ],
+  "status": "success"
+}

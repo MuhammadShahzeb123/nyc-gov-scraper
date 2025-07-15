@@ -170,58 +170,46 @@ class NYCParkingTicketScraper:
             print("Page loaded successfully")
             # Only simulate behavior after page is fully loaded and stable
             self.random_delay(1, 2)
-            try:
-                self.simulate_human_behavior()
-            except Exception as e:
-                print(f"Warning: Human behavior simulation failed during navigation: {e}")
+            # try:
+            #     self.simulate_human_behavior()
+            # except Exception as e:
+            #     print(f"Warning: Human behavior simulation failed during navigation: {e}")
             return True
         except Exception:
             print("Timeout waiting for violation input")
             return False
 
     def detect_captcha_error(self) -> bool:
+        """
+        Detect CAPTCHA error by checking if both 'unable' and 'verify' keywords
+        are present in the page source after form submission.
+
+        This method should be called after:
+        1. Clicking the search/submit button
+        2. Waiting for the page to load (via wait_for_results())
+        3. Getting the full page content
+        """
         try:
+            print("🤖 Checking page source for CAPTCHA error keywords...")
+
             # Get the full page source using CDP
+            time.sleep(7)
             page_source = self.sb.cdp.get_page_source().lower()
 
-            # Various captcha error patterns to check for
-            captcha_patterns = [
-                "unable to verify recaptcha with google",
-                "unable to verify recaptcha",
-                "recaptcha verification failed",
-                "captcha verification failed",
-                "captcha error",
-                "recaptcha error",
-                "please verify you are human",
-                "verify you are not a robot",
-                "security verification required",
-                "anti-bot verification",
-                "please complete the captcha",
-                "captcha challenge",
-                "human verification required"
-            ]
+            # Check if both keywords are present in the page source
+            has_unable = "unable" in page_source
+            has_verify = "verify" in page_source
 
-            # Check for any of these patterns
-            for pattern in captcha_patterns:
-                if pattern in page_source:
-                    print(f"🤖 CAPTCHA DETECTED: Found pattern '{pattern}'")
-                    return True
+            print(f"   📋 Found 'unable': {has_unable}")
+            print(f"   📋 Found 'verify': {has_verify}")
 
-            # Also check for common reCAPTCHA elements in page source
-            captcha_elements_text = [
-                'class="recaptcha"', 'class*="recaptcha"',
-                'title="recaptcha"', 'title*="recaptcha"',
-                'id="captcha"', 'id*="captcha"',
-                'class="captcha"', 'class*="captcha"',
-                'class="g-recaptcha"', 'i am not a robot'
-            ]
-
-            for element_text in captcha_elements_text:
-                if element_text in page_source:
-                    print(f"🤖 CAPTCHA DETECTED: Found element text '{element_text}'")
-                    return True
-
-            return False
+            # CAPTCHA error detected if BOTH keywords are present
+            if has_unable and has_verify:
+                print(f"🤖 CAPTCHA ERROR DETECTED: Both 'unable' and 'verify' keywords found in page source")
+                return True
+            else:
+                print(f"✅ No CAPTCHA error detected - missing one or both keywords")
+                return False
 
         except Exception as e:
             print(f"⚠️ Error checking for captcha: {type(e).__name__}")
@@ -236,69 +224,117 @@ class NYCParkingTicketScraper:
         try:
             print(f"🎯 Starting search for {num}{' (retry)' if is_retry else ''}...")
 
-            # Add some human behavior before starting
+            # # Add some human behavior before starting
+            # try:
+            #     self.simulate_human_behavior()
+            # except Exception as e:
+            #     print(f"Warning: Pre-search human behavior failed: {e}")
+
+            # Try the standard search method first
             try:
-                self.simulate_human_behavior()
-            except Exception as e:
-                print(f"Warning: Pre-search human behavior failed: {e}")
+                print("📍 Waiting for violation number input field...")
+                self.sb.cdp.wait_for_element_visible('//*[@id="violation-number"]', timeout=30)
 
-            self.random_delay(0.5, 1.5)
+                print("🧹 Clearing input field...")
+                # Use select_all and then type to clear and replace content
+                self.sb.cdp.select_all('//*[@id="violation-number"]')
+                self.random_delay(0.2, 0.5)
 
-            # Use CDP mode for element interaction
-            print("📍 Waiting for violation number input field...")
-            self.sb.cdp.wait_for_element_visible('//*[@id="violation-number"]', timeout=30)
+                print("🖱️ Clicking input field...")
+                self.sb.cdp.click('//*[@id="violation-number"]')
+                self.random_delay(0.3, 0.8)
 
-            print("🧹 Clearing input field...")
-            # Use select_all and then type to clear and replace content
-            self.sb.cdp.select_all('//*[@id="violation-number"]')
-            self.random_delay(0.2, 0.5)
+                # Type using CDP mode with human-like delays
+                print(f"⌨️ Typing violation number: {num}")
+                if TYPING_BEHAVIOR.get('enabled', True):
+                    # Human-like typing with delays - type the entire number at once, then add delays
+                    self.sb.cdp.type('//*[@id="violation-number"]', num)
+                    # Add a small delay to simulate human typing speed
+                    time.sleep(random.uniform(
+                        TYPING_BEHAVIOR.get('char_delay_min', 0.05) * len(num),
+                        TYPING_BEHAVIOR.get('char_delay_max', 0.15) * len(num)
+                    ))
+                else:
+                    # Fast typing - use set_value for immediate replacement
+                    self.sb.cdp.set_value('//*[@id="violation-number"]', num)
 
-            print("🖱️ Clicking input field...")
-            self.sb.cdp.click('//*[@id="violation-number"]')
-            self.random_delay(0.3, 0.8)
+                self.random_delay(0.5, 1.0)
 
-            # Type using CDP mode with human-like delays
-            print(f"⌨️ Typing violation number: {num}")
-            if TYPING_BEHAVIOR.get('enabled', True):
-                # Human-like typing with delays - type the entire number at once, then add delays
-                self.sb.cdp.type('//*[@id="violation-number"]', num)
-                # Add a small delay to simulate human typing speed
-                time.sleep(random.uniform(
-                    TYPING_BEHAVIOR.get('char_delay_min', 0.05) * len(num),
-                    TYPING_BEHAVIOR.get('char_delay_max', 0.15) * len(num)
-                ))
-            else:
-                # Fast typing - use set_value for immediate replacement
-                self.sb.cdp.set_value('//*[@id="violation-number"]', num)
+                # Click search button using CDP
+                print("🔍 Clicking search button...")
+                self.sb.cdp.click('//*[@id="by-violation-form"]/div[3]/button')
+                print(f"✅ Search initiated for violation number: {num}{' (retry)' if is_retry else ''}")
 
-            self.random_delay(0.5, 1.0)
+            except Exception as search_error:
+                print(f"⚠️ Standard search failed: {search_error}")
+                print("🔄 Attempting fallback method - looking for expanded ticket view...")
 
-            # Click search button using CDP
-            print("🔍 Clicking search button...")
-            self.sb.cdp.click('//*[@id="by-violation-form"]/div[3]/button')
-            print(f"✅ Search initiated for violation number: {num}{' (retry)' if is_retry else ''}")
+                # Fallback: Try to click the expand button to reveal hidden tickets
+                try:
+                    expand_xpath = '/html/body/div[1]/main/div/div[3]/div/table/tbody/tr[1]/td/div[3]/div[1]/div'
+                    print(f"🎯 Clicking expand button at: {expand_xpath}")
+                    self.sb.cdp.click(expand_xpath)
+                    self.random_delay(1, 2)
+                    print("✅ Expand button clicked, tickets should now be visible")
+                except Exception as expand_error:
+                    print(f"❌ Expand button click failed: {expand_error}")
+                    # Try alternative expand button selectors
+                    alternative_selectors = [
+                        '//div[@class="block-cell"]//div[@class="ico-wrapper"]',
+                        '//i[@class="ico ico-caret-right"]',
+                        '//div[contains(@class, "block-wrapper")]//div[contains(@class, "block-cell")]',
+                        '//div[contains(text(), "Judgment Violations")]//div[@class="ico-wrapper"]',
+                        '//div[contains(text(), "Violations")]//div[@class="ico-wrapper"]'
+                    ]
+
+                    for selector in alternative_selectors:
+                        try:
+                            print(f"🔄 Trying alternative selector: {selector}")
+                            self.sb.cdp.click(selector)
+                            self.random_delay(1, 2)
+                            print(f"✅ Alternative expand clicked: {selector}")
+                            break
+                        except Exception:
+                            continue
+                    else:
+                        print("❌ All expand button attempts failed")
+                        return False
 
             print("⏳ Waiting for results...")
             self.wait_for_results()
 
             print("🤖 Checking for CAPTCHA...")
-            if self.detect_captcha_error():
-                if is_retry:
-                    print(f"🤖 Captcha detected again on retry for {num} - skipping this violation")
-                    return False
+            captcha_detected = self.detect_captcha_error()
+            if captcha_detected:
+                try:
+                    time.sleep(random.randint(3, 7))
+                    self.sb.cdp.click('//*[@id="by-violation-form"]/div[3]/button')  # Click to refocus input
+                    temp_captcha_detected = self.detect_captcha_error()
+                    if temp_captcha_detected:
+                        raise Exception(f"CAPTCHA detected after refocusing for {num}")
+                except Exception as e:
+                    if is_retry:
+                        print(f"🤖 Captcha detected again on retry for {num} - skipping this violation")
+                        return False
                 return self.handle_captcha_retry(num)
+            else:
+                print("✅ No CAPTCHA detected - continuing with extraction")
 
             print("🔧 Attempting to click search filters...")
+            time.sleep(5)
             self.try_click_search_filters_stealthily()
 
             print(f"✅ Search process completed successfully for {num}")
             return True
 
         except Exception as e:
+            time.sleep(5)
+            self.try_click_search_filters_stealthily()
             print(f"❌ Error searching {num}: {e}")
             import traceback
             traceback.print_exc()
             return False
+
 
     def search_violation_number(self, num: str) -> bool:
         return self.search_violation_number_internal(num, is_retry=False)
@@ -332,9 +368,24 @@ class NYCParkingTicketScraper:
             # Use CDP mode to get page source and parse
             page_source = self.sb.cdp.get_page_source()
 
-            # Check if there are any ticket rows in the page source
+            # Check if ticket is flagged as deleted - skip extraction if found
+            if 'flagged as deleted' in page_source.lower():
+                print(f"🚫 Ticket {num} is flagged as deleted - skipping extraction")
+                return tickets  # Return empty list and move to next violation
+
+            # Check for expanded format first (tbody class="parking-results")
+            if 'tbody class="parking-results"' in page_source:
+                print(f"📋 Found expanded format tickets for {num}")
+                tickets = self.parse_expanded_ticket_format(page_source, num)
+                if tickets:
+                    print(f"✅ Successfully extracted {len(tickets)} tickets from expanded format")
+                    return tickets
+                else:
+                    print(f"⚠️ No tickets extracted from expanded format, trying standard format...")
+
+            # Check for standard format (ticket- rows)
             if 'ticket-' not in page_source or '<tr id="ticket-' not in page_source:
-                print(f"No tickets found for violation number: {num}")
+                print(f"No tickets found in either format for violation number: {num}")
                 # Check for "No violations found" or similar messages
                 if any(msg in page_source.lower() for msg in ['no violations found', 'no results', 'no records found']):
                     print(f"✓ Confirmed: No violations found for {num}")
@@ -342,7 +393,7 @@ class NYCParkingTicketScraper:
                     print(f"⚠️ Warning: No ticket rows found, but page might still be loading")
                 return tickets
 
-            print(f"📄 Found ticket data in page source for {num}")
+            print(f"📄 Found standard format ticket data for {num}")
 
             # Reconnect to use WebDriver for complex DOM parsing if needed
             try:
@@ -359,7 +410,7 @@ class NYCParkingTicketScraper:
                     self.sb.disconnect()
                     return tickets
 
-                print(f"Found {len(rows)} ticket(s) for violation number: {num}")
+                print(f"Found {len(rows)} ticket(s) in standard format for violation number: {num}")
                 for r in rows:
                     try:
                         data = self.parse_ticket_row(r, num)
@@ -376,9 +427,9 @@ class NYCParkingTicketScraper:
 
             except Exception as extraction_error:
                 print(f"⚠️ WebDriver extraction failed: {extraction_error}")
-                # Try to parse from page source directly if WebDriver fails
-                print("🔄 Attempting to parse from page source...")
-                tickets = self.parse_from_page_source(page_source, num)
+                # WebDriver extraction failed, return empty tickets list
+                print("🔄 WebDriver failed, returning empty results...")
+                # tickets remains as empty list
 
         except Exception as e:
             print(f"Error extracting ticket data: {str(e)}")
@@ -387,6 +438,167 @@ class NYCParkingTicketScraper:
 
         print(f"✓ Extraction complete for {num}: {len(tickets)} tickets found")
         return tickets
+
+    def parse_expanded_ticket_format(self, page_source: str, num: str) -> list:
+        """Parse tickets from the expanded format shown in tbody.parking-results"""
+        tickets = []
+        try:
+            print(f"🔍 Parsing expanded ticket format for {num}...")
+
+            # Look for tbody with class "parking-results"
+            if 'tbody class="parking-results"' not in page_source:
+                print(f"⚠️ No parking-results tbody found for {num}")
+                return tickets
+
+            # Reconnect temporarily for DOM parsing
+            try:
+                if not self.sb.is_connected():
+                    print("🔄 Temporarily reconnecting for expanded format parsing...")
+                    self.sb.reconnect()
+
+                # Look for all ticket rows in the expanded format
+                rows = self.driver.find_elements(By.XPATH, "//tr[starts-with(@id,'ticket-')]")
+                if not rows:
+                    print(f"No ticket rows found in expanded format for {num}")
+                    self.sb.disconnect()
+                    return tickets
+
+                print(f"Found {len(rows)} ticket(s) in expanded format for {num}")
+                for row in rows:
+                    try:
+                        # Check if this row is visible or has style="display: none;"
+                        style = row.get_attribute('style') or ''
+                        if 'display: none' in style:
+                            print(f"  ⚠️ Skipping hidden ticket row")
+                            continue
+
+                        # Parse the expanded format ticket row
+                        data = self.parse_expanded_ticket_row(row, num)
+                        if data:
+                            tickets.append(data)
+                            print(f"✓ Parsed expanded ticket: {data.get('ticket_id', 'Unknown')} - {data.get('violation_number', 'Unknown')}")
+                    except Exception as e:
+                        print(f"Error parsing expanded ticket row: {str(e)}")
+                        continue
+
+                # Disconnect again to maintain stealth
+                print("🔒 Disconnecting WebDriver after expanded parsing...")
+                self.sb.disconnect()
+
+            except Exception as parsing_error:
+                print(f"⚠️ Expanded format parsing failed: {parsing_error}")
+
+        except Exception as e:
+            print(f"Error in expanded ticket parsing: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+        print(f"✓ Expanded parsing complete for {num}: {len(tickets)} tickets found")
+        return tickets
+
+    def parse_expanded_ticket_row(self, row, num: str) -> dict:
+        """Parse a single ticket row from the expanded format"""
+        try:
+            t = {
+                'search_violation_number': num,
+                'extracted_at': datetime.now().isoformat(),
+                'ticket_id': '', 'violation_number': '', 'license_plate': '',
+                'violation_type': '', 'date': '', 'liability_amount': '',
+                'paid_amount': '', 'amount_due': '', 'payment_amount': '',
+                'view_ticket_link': '', 'status': ''
+            }
+
+            # Extract ticket ID from row id attribute
+            tid = row.get_attribute('id') or ''
+            if tid.startswith('ticket-'):
+                t['ticket_id'] = tid.replace('ticket-', '')
+
+            # Check if this is a paid/not-addable ticket
+            class_attr = row.get_attribute('class') or ''
+            if 'not-addable' in class_attr:
+                t['status'] = 'paid_in_full'
+
+            # Extract cells from the expanded format
+            cells = row.find_elements(By.TAG_NAME, 'td')
+            if len(cells) >= 8:
+                # Cell 1 (index 1): Violation number and view ticket link
+                if len(cells) > 1:
+                    violation_cell = cells[1]
+                    # Extract violation number from span
+                    spans = violation_cell.find_elements(By.TAG_NAME, 'span')
+                    if spans:
+                        t['violation_number'] = spans[0].text.strip()
+                    # Extract view ticket link
+                    links = violation_cell.find_elements(By.TAG_NAME, 'a')
+                    if links:
+                        t['view_ticket_link'] = links[0].get_attribute('href')
+
+                # Cell 2 (index 2): License plate
+                if len(cells) > 2:
+                    license_cell = cells[2]
+                    spans = license_cell.find_elements(By.TAG_NAME, 'span')
+                    if spans:
+                        t['license_plate'] = spans[0].text.strip()
+
+                # Cell 3 (index 3): Violation type
+                if len(cells) > 3:
+                    t['violation_type'] = cells[3].text.strip()
+
+                # Cell 4 (index 4): Date
+                if len(cells) > 4:
+                    t['date'] = cells[4].text.strip()
+
+                # Cell 5 (index 5): Liability amount
+                if len(cells) > 5:
+                    liability_cell = cells[5]
+                    data_elements = liability_cell.find_elements(By.TAG_NAME, 'data')
+                    if data_elements:
+                        t['liability_amount'] = data_elements[0].text.strip()
+
+                # Cell 6 (index 6): Paid amount
+                if len(cells) > 6:
+                    paid_cell = cells[6]
+                    data_elements = paid_cell.find_elements(By.TAG_NAME, 'data')
+                    if data_elements:
+                        t['paid_amount'] = data_elements[0].text.strip()
+
+                # Cell 7 (index 7): Amount due
+                if len(cells) > 7:
+                    due_cell = cells[7]
+                    data_elements = due_cell.find_elements(By.TAG_NAME, 'data')
+                    if data_elements:
+                        t['amount_due'] = data_elements[0].text.strip()
+
+                    # Check for "Payment in process" or "Paid in Full" messages
+                    if 'Payment of' in due_cell.text and 'is in process' in due_cell.text:
+                        t['status'] = 'payment_in_process'
+
+                # Cell 8 (index 8): Payment amount input
+                if len(cells) > 8:
+                    payment_cell = cells[8]
+                    inputs = payment_cell.find_elements(By.XPATH, './/input[@name="paymentAmount"]')
+                    if inputs:
+                        t['payment_amount'] = inputs[0].get_attribute('value') or ''
+
+                # Cell 9 (index 9): Add to cart / status
+                if len(cells) > 9:
+                    cart_cell = cells[9]
+                    if 'Paid in Full' in cart_cell.text:
+                        t['status'] = 'paid_in_full'
+
+            print(f"Extracted expanded ticket: {t['ticket_id']} - {t['violation_number']} - Status: {t['status']}")
+            return t
+
+        except Exception as e:
+            print(f"Error parsing expanded ticket row: {str(e)}")
+            return {
+                'search_violation_number': num,
+                'extracted_at': datetime.now().isoformat(),
+                'ticket_id': '', 'violation_number': '', 'license_plate': '',
+                'violation_type': '', 'date': '', 'liability_amount': '',
+                'paid_amount': '', 'amount_due': '', 'payment_amount': '',
+                'view_ticket_link': '', 'status': 'error', 'error': str(e)
+            }
 
     def parse_ticket_row(self, row, num: str) -> dict:
         try:
@@ -539,9 +751,6 @@ class NYCParkingTicketScraper:
         try:
             # Always attempt this since it's crucial for progression
             print("🔍 Attempting to interact with search filters (CRUCIAL STEP)...")
-
-            # Simulate looking around the page first
-            self.simulate_human_behavior()
             self.random_delay(0.5, 1.5)
 
             # Multiple XPath options to try (in order of preference)
@@ -550,9 +759,6 @@ class NYCParkingTicketScraper:
                 '//*[@id="search-filters"]//a',   # Any link within search-filters
                 '//*[@id="search-filters"]/p',    # The paragraph container
                 '//*[@id="search-filters"]',      # The main container
-                '//a[contains(@href, "search")]', # Any search-related link
-                '//a[contains(text(), "filter")]', # Any filter-related link
-                '//a[contains(text(), "Filter")]'  # Capitalized filter
             ]
 
             element_found = False
@@ -561,12 +767,11 @@ class NYCParkingTicketScraper:
                 try:
                     # Try to click using CDP first
                     try:
-                        if self.sb.cdp.is_element_visible(xpath):
-                            self.sb.cdp.click(xpath)
-                            print(f"✅ SUCCESS: CDP clicked search filters using {xpath}")
-                            self.random_delay(0.5, 1.2)
-                            element_found = True
-                            break
+                        self.sb.cdp.click(xpath)
+                        print(f"✅ SUCCESS: CDP clicked search filters using {xpath}")
+                        self.random_delay(0.5, 1.2)
+                        element_found = True
+                        break
                     except Exception:
                         # Fallback to regular selenium
                         search_filters = self.driver.find_elements(By.XPATH, xpath)
@@ -840,7 +1045,7 @@ class NYCParkingTicketScraper:
             self.sb.activate_cdp_mode(base_url)
 
             # Wait for page to load with human-like behavior
-            self.random_delay(2, 4)
+            self.random_delay(1,3)
 
             # Only simulate behavior after ensuring page is stable
             try:
@@ -911,16 +1116,6 @@ class NYCParkingTicketScraper:
                     except Exception as e:
                         print(f"Warning: Delay config issue, using default: {e}")
                         time.sleep(random.uniform(2, 5))
-
-                # Random human behavior before search with fallback
-                try:
-                    behavior_probability = DELAYS.get('random_behavior_probability', 0.3)
-                    if random.random() < behavior_probability:
-                        print("Performing random human behavior...")
-                        self.simulate_human_behavior()
-                except Exception as e:
-                    print(f"Warning: Human behavior simulation failed: {e}")
-
                 print(f"🔍 Starting search for violation number: {num}")
                 search_success = self.search_violation_number(num)
 
