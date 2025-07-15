@@ -47,7 +47,7 @@ class NYCParkingTicketScraper:
         try:
             print("🤖 Simulating human behavior...")
 
-            if MOUSE_MOVEMENTS.get('enabled', True):
+            if MOUSE_MOVEMENTS.get('enabled', False):
                 try:
                     movements = random.randint(
                         MOUSE_MOVEMENTS.get('min_movements', 1),
@@ -159,7 +159,7 @@ class NYCParkingTicketScraper:
         self.random_delay(2, 4)
         try:
             # Use CDP mode for waiting
-            self.sb.cdp.wait_for_element_visible('//*[@id="violation-number"]', timeout=30)
+            self.sb.cdp.wait_for_element_visible('//*[@id="violation-number"]', timeout=14)
             print("Page loaded successfully")
             # Only simulate behavior after page is fully loaded and stable
             self.random_delay(1, 2)
@@ -996,24 +996,6 @@ def main():
     os.makedirs("results", exist_ok=True)
     os.makedirs("backup", exist_ok=True)
 
-    # Prepare profile and UA
-    profile = os.path.join(os.getcwd(), "chrome_profile")
-    os.makedirs(profile, exist_ok=True)
-    ua = random.choice(USER_AGENTS)
-
-    args = [
-        "--disable-blink-features=AutomationControlled",
-        "--disable-infobars",
-        "--disable-popup-blocking",
-        "--disable-notifications",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-extensions",
-        "--start-maximized",
-        "--disable-features=VizDisplayCompositor",
-        "--window-size=1920,1080",
-    ]
-
     # Get proxy configuration for SeleniumBase with validation
     proxy_string = proxy_rotator.get_seleniumbase_proxy_with_fallback(use_random=True)
     if proxy_string:
@@ -1024,12 +1006,9 @@ def main():
     with SB(
         uc=True,
         headless=False,
-        user_data_dir=profile,
-        agent=ua,
-        undetectable=True,
-        incognito=False,
-        chromium_arg=",".join(args),
-        proxy=proxy_string  # SeleniumBase authenticated proxy format (or None for direct)
+        proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
+        # Removed conflicting parameters that interfere with proxy authentication:
+        # user_data_dir, agent, undetectable, incognito, chromium_arg
     ) as sb:
         scraper = NYCParkingTicketScraper(sb)
         try:

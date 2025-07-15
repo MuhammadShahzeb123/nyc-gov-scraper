@@ -5,6 +5,46 @@ This project contains Python scripts for scraping various NYC government website
 
 ## Recent Updates (July 2025)
 
+### Critical Fix (July 15, 2025) - CitPay NYC Proxy Configuration ✅ COMPLETED
+**ISSUE RESOLVED:** Fixed `citypay_nyc_sb.py` proxy authentication that wasn't working due to conflicting SeleniumBase parameters.
+
+**Problem:** `citypay_nyc_sb.py` was not working with proxy authentication while other files worked perfectly.
+
+**Root Cause:** The `citypay_nyc_sb.py` file had conflicting SeleniumBase parameters that interfered with proxy authentication:
+- `user_data_dir=profile` - Conflicted with proxy session handling
+- `agent=ua` - Interfered with proxy agent handling
+- `undetectable=True` - Conflicted with proxy authentication
+- `incognito=False` - Interfered with proxy session
+- `chromium_arg=",".join(args)` - Chrome arguments conflicted with proxy
+
+**Solution Implemented:**
+✅ **Simplified SB Configuration** - Removed all conflicting parameters
+✅ **Matched Working Files** - Used same minimal configuration as `dmb_ny_sb.py` and `plead_and_pay_sb_clean.py`
+✅ **Clean Proxy Integration** - Only essential parameters: `uc=True`, `headless=False`, `proxy=proxy_string`
+
+**Before (BROKEN):**
+```python
+with SB(
+    uc=True,
+    headless=False,
+    user_data_dir=profile,        # ❌ CONFLICT
+    agent=ua,                     # ❌ CONFLICT
+    undetectable=True,            # ❌ CONFLICT
+    incognito=False,              # ❌ CONFLICT
+    chromium_arg=",".join(args),  # ❌ CONFLICT
+    proxy=proxy_string
+) as sb:
+```
+
+**After (WORKING):**
+```python
+with SB(
+    uc=True,
+    headless=False,
+    proxy=proxy_string,  # SeleniumBase authenticated proxy format (or None for direct)
+) as sb:
+```
+
 ### Latest Critical Fix (July 15, 2025) - Proxy Authentication Popup Resolution ✅ COMPLETED
 **ISSUE RESOLVED:** Fixed proxy authentication popup dialogs that were interrupting automation workflows.
 

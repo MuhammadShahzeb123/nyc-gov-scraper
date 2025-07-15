@@ -196,16 +196,7 @@ class PleadAndPayScraperSB:
                 print("🖱️ Continue Page: Clicking continue button (CDP Mode)...")
                 sb.cdp.sleep(2)
                 sb.cdp.scroll_into_view('/html/body/div[1]/div[5]/form/div[3]/input[2]')
-                try:
-                    sb.cdp.gui_click_element('/html/body/div[1]/div[5]/form/div[3]/input[2]', timeout=None)
-                except Exception:
-                    try:
-                        sb.cdp.press_keys('\t', timeout=None)
-                    except Exception:
-                        try:
-                            sb.cdp.click_if_visible('/html/body/div[1]/div[5]/form/div[3]/input[2]', timeout=None)
-                        except Exception as e:
-                            sb.cdp.click("/html/body/div[1]/div[5]/form/div[3]/input[2]")
+                sb.cdp.click("/html/body/div[1]/div[5]/form/div[3]/input[2]")
                 sb.cdp.sleep(3)
                 print(f"🔗 After continue click: {sb.cdp.get_current_url()}")
 
